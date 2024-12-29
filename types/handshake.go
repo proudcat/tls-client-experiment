@@ -1,10 +1,10 @@
 package types
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/helpers"
 )
 
 const (
@@ -34,7 +34,9 @@ func (h *HandshakeHeader) FromBytes(bytes []byte) error {
 		return fmt.Errorf("invalid handshake header size")
 	}
 	h.Type = bytes[0]
-	h.Length = binary.BigEndian.Uint32(bytes[1:4])
+	length_bytes := [3]byte{}
+	copy(length_bytes[:], bytes[1:4])
+	h.Length = helpers.Bytes2Uint24(length_bytes)
 	return nil
 }
 

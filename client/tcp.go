@@ -57,8 +57,7 @@ func (c TCPClient) Write(data []byte) error {
 
 func (c *TCPClient) Read(n int) ([]byte, error) {
 
-	fmt.Println("Reading response ", n)
-	fmt.Println("Buffer size ", c.in_bound_buf.Size())
+	fmt.Printf("Trying to read %d bytes \n", n)
 
 	if c.in_bound_buf.Size() < n {
 		chunk := make([]byte, n)
@@ -68,6 +67,7 @@ func (c *TCPClient) Read(n int) ([]byte, error) {
 			return nil, err
 		}
 		c.in_bound_buf.Write(chunk)
+		fmt.Printf("Read %d bytes from socket", len(chunk))
 	}
 
 	out, err := c.in_bound_buf.ReadBytes(n)
