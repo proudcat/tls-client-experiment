@@ -6,9 +6,11 @@ import (
 	"io"
 	"os"
 
+	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/constants"
 	"github.com/proudcat/tls-client-experiment/coreUtils"
 	"github.com/proudcat/tls-client-experiment/helpers"
+	"github.com/proudcat/tls-client-experiment/message"
 	"github.com/proudcat/tls-client-experiment/model"
 )
 
@@ -36,7 +38,7 @@ type TLSClient struct {
 	version         uint16
 	host            string
 	tcp             *TCPClient
-	messages        []byte
+	messages        *common.Buffer
 	clientSeqNumber byte
 	serverSeqNumber byte
 	cipherSuite     constants.CipherSuiteInfo
@@ -54,6 +56,7 @@ func NewTLSClient(host string, version uint16) *TLSClient {
 		version:         version,
 		host:            host,
 		tcp:             tcp,
+		messages:        common.NewBuffer(),
 		clientSeqNumber: 0,
 		serverSeqNumber: 0,
 	}
@@ -61,40 +64,40 @@ func NewTLSClient(host string, version uint16) *TLSClient {
 	return &tlsClient
 }
 
-func (client *TLSClient) Close() {
+func (client *TLSClient) Close() error {
 	err := client.tcp.Close()
-	if err != nil {
-		fmt.Println(err)
-	}
+	return err
 }
 
 func (c *TLSClient) Handshake() error {
 
 	//sending client hello
-	clientHello := model.MakeClientHello(c.version, c.host)
+	clientHello := message.MakeClientHello(c.version, c.host)
 	c.securityParams.ClientRandom = clientHello.ClientRandom
 	clientHelloPayload := clientHello.GetClientHelloPayload()
-	c.messages = append(c.messages, helpers.IgnoreRecordHeader(clientHelloPayload)...)
+	c.messages.Write(helpers.IgnoreRecordHeader(clientHelloPayload))
 
 	fmt.Println(clientHello)
-	c.send(clientHelloPayload)
+	if err := c.Write(clientHelloPayload); err != nil {
+		return nil
+	}
 
 	c.readServerResponse()
 	return nil
 }
 
-func (client *TLSClient) send(payload []byte) {
-	fmt.Println("Sending to server")
+func (client *TLSClient) Write(data []byte) error {
+	fmt.Printf("Writing %d bytes to server\n", len(data))
 
-	err := client.tcp.Write(payload)
+	err := client.tcp.Write(data)
 	if err != nil {
 		fmt.Println("Write to server failed:", err.Error())
-		client.Close()
-		os.Exit(1)
+		return err
 	}
+	return err
 }
 
-func (client *TLSClient) readFromServer() ([]byte, error) {
+func (client *TLSClient) Read() ([]byte, error) {
 	fmt.Println("Reading response")
 
 	header_bytes, err := client.tcp.Read(5)
@@ -119,7 +122,7 @@ func (client *TLSClient) readServerResponse() {
 	var answer []byte
 	isMultipleHandshakeMessages := false
 
-	answer, err := client.readFromServer()
+	answer, err := client.Read()
 	if err != nil {
 		fmt.Println(err)
 		client.Close()
@@ -135,12 +138,12 @@ func (client *TLSClient) readServerResponse() {
 
 	client.cipherSuite = *constants.GCipherSuites.GetSuiteInfoForByteCode(serverHello.CipherSuite)
 	client.securityParams.ServerRandom = serverHello.ServerRandom
-	client.messages = append(client.messages, helpers.IgnoreRecordHeader(answer)...)
+	client.messages.Write(helpers.IgnoreRecordHeader(answer))
 
 	fmt.Println(serverHello)
 	//check is multiple handshake messages
 	if len(left_answer) == 0 {
-		answer, err = client.readFromServer()
+		answer, err = client.Read()
 		if err != nil {
 			fmt.Println(err)
 			client.Close()
@@ -174,14 +177,14 @@ func (client *TLSClient) readServerResponse() {
 	}
 
 	if !isMultipleHandshakeMessages {
-		client.messages = append(client.messages, helpers.IgnoreRecordHeader(answer)...)
+		client.messages.Write(helpers.IgnoreRecordHeader(answer))
 	}
 
 	fmt.Println(serverCertificate)
 	//check is multiple handshake messages
 	if len(left_answer) == 0 {
 		isMultipleHandshakeMessages = false
-		answer, err = client.readFromServer()
+		answer, err = client.Read()
 		if err != nil {
 			fmt.Println(err)
 			client.Close()
@@ -200,7 +203,7 @@ func (client *TLSClient) readServerResponse() {
 		fmt.Println(err)
 	} else {
 		if !isMultipleHandshakeMessages {
-			client.messages = append(client.messages, helpers.IgnoreRecordHeader(answer)...)
+			client.messages.Write(helpers.IgnoreRecordHeader(answer))
 		}
 
 		fmt.Println(serverKeyExchange)
@@ -208,7 +211,7 @@ func (client *TLSClient) readServerResponse() {
 		//check is multiple handshake messages
 		if len(left_answer) == 0 {
 			isMultipleHandshakeMessages = false
-			answer, err = client.readFromServer()
+			answer, err = client.Read()
 			if err != nil {
 				fmt.Println(err)
 				client.Close()
@@ -243,7 +246,7 @@ func (client *TLSClient) readServerResponse() {
 	}
 
 	if !isMultipleHandshakeMessages {
-		client.messages = append(client.messages, helpers.IgnoreRecordHeader(answer)...)
+		client.messages.Write(helpers.IgnoreRecordHeader(answer))
 	}
 
 	fmt.Println(serverHelloDone)

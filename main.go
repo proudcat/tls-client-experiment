@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/proudcat/tls-client-experiment/client"
@@ -14,6 +15,10 @@ func main() {
 	host := "www.ssllabs.com"
 
 	https_client := client.NewHTTPSClient(host, types.VersionTLS12)
-	https_client.Request(http.MethodGet, "/", nil) // "GET / HTTP/1.1")
-	https_client.Close()
+	err := https_client.Request(http.MethodGet, "/", nil) // "GET / HTTP/1.1")
+
+	if err != nil {
+		fmt.Println("request error", err)
+		return
+	}
 }

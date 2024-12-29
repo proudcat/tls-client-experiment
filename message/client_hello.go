@@ -1,19 +1,17 @@
-package model
+package message
 
 import (
 	"crypto/rand"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/proudcat/tls-client-experiment/constants"
 	"github.com/proudcat/tls-client-experiment/helpers"
+	"github.com/proudcat/tls-client-experiment/model"
 )
 
 type ClientHello struct {
-	RecordHeader                RecordHeader
-	HandshakeHeader             HandshakeHeader
+	RecordHeader                model.RecordHeader
+	HandshakeHeader             model.HandshakeHeader
 	ClientVersion               [2]byte
 	ClientRandom                [32]byte
 	SessionID                   [1]byte
@@ -30,11 +28,11 @@ type ClientHello struct {
 func MakeClientHello(tlsVersion uint16, host string) ClientHello {
 	clientHello := ClientHello{}
 
-	recordHeader := RecordHeader{}
+	recordHeader := model.RecordHeader{}
 	recordHeader.Type = constants.RecordHandshake
 	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.0")
 
-	handshakeHeader := HandshakeHeader{}
+	handshakeHeader := model.HandshakeHeader{}
 	handshakeHeader.MessageType = constants.HandshakeClientHello
 
 	clientHello.ClientVersion = helpers.ConvertIntToByteArray(tlsVersion)
@@ -155,12 +153,6 @@ func (clientHello ClientHello) GetClientHelloPayload() []byte {
 	return payload
 }
 
-func (clientHello ClientHello) SaveJSON() {
-	file, _ := os.OpenFile("ClientHello.json", os.O_CREATE, os.ModePerm)
-	defer file.Close()
-	_ = json.NewEncoder(file).Encode(&clientHello)
-}
-
 func (clientHello ClientHello) String() string {
 	out := fmt.Sprintf("Client Hello\n")
 	out += fmt.Sprint(clientHello.RecordHeader)
@@ -182,28 +174,4 @@ func (clientHello ClientHello) String() string {
 	out += fmt.Sprintf("  ExtensionServerName..: %6x\n", clientHello.ExtensionServerName)
 
 	return out
-}
-
-func (clientHello *ClientHello) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		RecordHeader             RecordHeader    `json:"RecordHeader"`
-		HandshakeHeader          HandshakeHeader `json:"HandshakeHeader"`
-		ClientVersion            string          `json:"ClientVersion"`
-		ClientRandom             string          `json:"ClientRandom"`
-		SessionID                uint8           `json:"SessionID"`
-		CipherSuiteLength        uint16          `json:"CipherSuiteLength"`
-		CipherSuites             []string        `json:"CipherSuites"`
-		CompressionMethodsLength uint8           `json:"CompressionMethodsLength"`
-		CompressionMethods       string          `json:"CompressionMethods"`
-	}{
-		RecordHeader:             clientHello.RecordHeader,
-		HandshakeHeader:          clientHello.HandshakeHeader,
-		ClientVersion:            constants.GTlsVersions.GetVersionForByteCode(clientHello.ClientVersion),
-		ClientRandom:             hex.EncodeToString(clientHello.ClientRandom[:]),
-		SessionID:                clientHello.SessionID[0],
-		CipherSuiteLength:        helpers.ConvertByteArrayToUInt16(clientHello.CipherSuiteLength),
-		CipherSuites:             helpers.ConvertByteArrayToCipherSuites(clientHello.CipherSuite),
-		CompressionMethodsLength: clientHello.CompressionMethodsLength[0],
-		CompressionMethods:       hex.EncodeToString(clientHello.CompressionMethods),
-	})
 }

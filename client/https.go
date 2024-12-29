@@ -21,5 +21,5 @@ func (client *HTTPSClient) Request(method, path string, headers map[string]strin
 		return err
 	}
 
-	return nil
+	return client.tls.Close()
 }

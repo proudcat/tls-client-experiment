@@ -6,23 +6,23 @@ import (
 )
 
 const (
-	BUFFER_GROW_SIZE = 1024            // 1024 bytes
+	BUFFER_GROW_SIZE = 64              // 64 bytes
 	MAX_SIZE         = 1024 * 1024 * 8 // max buffer size is 8M
 )
 
 type Buffer struct {
-	bytes  []byte
-	offset int
-	cursor int
-	keys   map[string]int
+	bytes []byte
+	w     int // write offset
+	r     int // read offset
+	keys  map[string]int
 }
 
 func NewBuffer() *Buffer {
 	return &Buffer{
-		bytes:  make([]byte, BUFFER_GROW_SIZE),
-		offset: 0,
-		cursor: 0,
-		keys:   make(map[string]int, 0),
+		bytes: make([]byte, BUFFER_GROW_SIZE),
+		w:     0,
+		r:     0,
+		keys:  make(map[string]int, 0),
 	}
 }
 
@@ -34,7 +34,7 @@ func (b *Buffer) AddKey(key string) {
 	if _, ok := b.keys[key]; ok {
 		panic("key already exists")
 	}
-	b.keys[key] = b.cursor
+	b.keys[key] = b.r
 }
 
 func (b *Buffer) ClearKeys() {
@@ -52,23 +52,23 @@ func (b *Buffer) ClipSize(key1, key2 string) int {
 }
 
 func (b *Buffer) Size() int {
-	return b.offset - b.cursor
+	return b.w - b.r
 }
 
 func (b *Buffer) Reset() {
-	b.offset = 0
-	b.cursor = 0
+	b.w = 0
+	b.r = 0
 	b.bytes = make([]byte, BUFFER_GROW_SIZE)
 	b.ClearKeys()
 }
 
 func (b *Buffer) PeekAllBytes() []byte {
-	return b.bytes[b.cursor:b.offset]
+	return b.bytes[b.r:b.w]
 }
 
 func (b *Buffer) Drain() []byte {
 	out := make([]byte, b.Size())
-	copy(out, b.bytes[b.cursor:b.offset])
+	copy(out, b.bytes[b.r:b.w])
 	b.Reset()
 	return out
 }
@@ -89,8 +89,8 @@ func (b *Buffer) Grow(size int) error {
 
 func (b *Buffer) Next(n int) []byte {
 	chunk := make([]byte, n)
-	copy(chunk, b.bytes[b.cursor:b.cursor+n])
-	b.cursor += n
+	copy(chunk, b.bytes[b.r:b.r+n])
+	b.r += n
 	return chunk
 }
 
@@ -102,20 +102,20 @@ func (b *Buffer) Read(chunk []byte) error {
 		return errors.New("buffer is not enough")
 	}
 
-	copy(chunk, b.bytes[b.cursor:b.cursor+n])
-	b.cursor += n
+	copy(chunk, b.bytes[b.r:b.r+n])
+	b.r += n
 	return nil
 }
 
 func (b *Buffer) Write(data []byte) {
 	size := len(data)
-	if size > len(b.bytes)-b.offset {
+	if size > len(b.bytes)-b.w {
 		if err := b.Grow(size); err != nil {
 			panic(err)
 		}
 	}
-	copy(b.bytes[b.offset:b.offset+size], data)
-	b.offset += size
+	copy(b.bytes[b.w:b.w+size], data)
+	b.w += size
 }
 
 func (b *Buffer) WriteUint8(data uint8) {
@@ -167,8 +167,8 @@ func (b *Buffer) ReadBytes(n int) ([]byte, error) {
 	}
 
 	out := make([]byte, n)
-	copy(out, b.bytes[b.cursor:b.cursor+n])
-	b.cursor += n
+	copy(out, b.bytes[b.r:b.r+n])
+	b.r += n
 	return out, nil
 }
 
@@ -188,5 +188,5 @@ func (b *Buffer) PeekInt24() int {
 }
 
 func (b *Buffer) Peek(n int) []byte {
-	return b.bytes[b.cursor : b.cursor+n]
+	return b.bytes[b.r : b.r+n]
 }

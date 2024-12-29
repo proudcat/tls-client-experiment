@@ -49,7 +49,7 @@ func (c TCPClient) Size() int {
 }
 
 func (c TCPClient) Write(data []byte) error {
-	fmt.Printf(">>>>> sending %d bytes\n", len(data))
+	fmt.Printf(">>>>> sending %d bytes to server\n", len(data))
 	_, err := c.conn.Write(data)
 	if err != nil {
 		fmt.Println("sending failed:", err.Error())
