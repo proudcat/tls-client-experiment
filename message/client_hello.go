@@ -1,56 +1,25 @@
 package message
 
 import (
-	"crypto/rand"
 	"fmt"
 
 	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/constants"
-	"github.com/proudcat/tls-client-experiment/helpers"
-	"github.com/proudcat/tls-client-experiment/model"
 	"github.com/proudcat/tls-client-experiment/types"
 )
 
 type ClientHelloMessage struct {
-	Version                       uint16
-	Random                        [32]byte
-	SessionIdLength               byte
-	CipherSuiteLength             uint16
-	CipherSuite                   []uint16
-	CompressionMethodsLength      byte
-	CompressionMethods            []byte
-	ExtensionsLength              uint16
-	ExtensionGrease0              [4]byte
-	ExtensionServerName           []byte
-	ExtensionExtendedMasterSecret [4]byte
-	ExtensionRenegotiation        [5]byte
-	ExtensionSupportedGroups      []byte
-	ExtensionEcPointFormats       [6]byte
-	ExtensionSessionTicket        [4]byte
-	// ExtensionStatusRequest              [9]byte
-	ExtensionSignatureAlgorithm         []byte
-	ExtensionSignedCertificateTimestamp [4]byte
-	ExtensionGrease1                    [5]byte
-	Extensions                          map[uint16][]byte
+	Version                  uint16
+	Random                   [32]byte
+	SessionIdLength          byte
+	CipherSuiteLength        uint16
+	CipherSuite              []uint16
+	CompressionMethodsLength byte
+	CompressionMethods       []byte
+	ExtensionsLength         uint16
+	Extensions               []types.Extension
 }
 
-type ClientHello struct {
-	RecordHeader                model.RecordHeader
-	HandshakeHeader             model.HandshakeHeader
-	ClientVersion               [2]byte
-	ClientRandom                [32]byte
-	SessionID                   [1]byte
-	CipherSuiteLength           [2]byte
-	CipherSuite                 []byte
-	CompressionMethodsLength    [1]byte
-	CompressionMethods          []byte
-	ExtensionsLength            [2]byte
-	ExtensionSupportedGroups    []byte
-	ExtensionSignatureAlgorithm []byte
-	ExtensionServerName         []byte
-}
-
-func NewClientHelloMessage(tls_version uint16, host string) *ClientHelloMessage {
+func NewClientHelloMessage(tls_version uint16, host string) ClientHelloMessage {
 
 	cipher_suites := []uint16{
 		types.GREASE,
@@ -58,212 +27,176 @@ func NewClientHelloMessage(tls_version uint16, host string) *ClientHelloMessage 
 		types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	}
 
+	cipher_suite_len := uint16(len(cipher_suites) * 2)
+	client_random := common.Random32()
+
+	msg := ClientHelloMessage{
+		Version:                  tls_version,
+		Random:                   client_random,
+		CipherSuite:              cipher_suites,
+		CipherSuiteLength:        cipher_suite_len,
+		CompressionMethodsLength: 0x01,
+		CompressionMethods:       []byte{0x00},
+		SessionIdLength:          0x00,
+	}
+
+	msg.AddExtension(types.EXT_TYPE_GREASE_BEGIN, []byte{0x00, 0x00})
+
 	server_name := []byte(host)
 	server_name_len := uint16(len(server_name))
 
 	buf := common.NewBuffer()
-	buf.Write([]byte{0x00, 0x00})
-	buf.WriteUint16(server_name_len + 5) // server name extension length
 	buf.WriteUint16(server_name_len + 3) // server name list length
 	buf.WriteUint8(0x00)                 // name type: host_name
 	buf.WriteUint16(server_name_len)     // name length
 	buf.Write(server_name)
 	ext_server_name := buf.Drain()
 
-	msg := &ClientHelloMessage{
-		Version:                       tls_version,
-		Random:                        common.Random32(),
-		CipherSuite:                   cipher_suites,
-		CipherSuiteLength:             uint16(len(cipher_suites) * 2),
-		CompressionMethods:            []byte{0x00},
-		CompressionMethodsLength:      0x01,
-		SessionIdLength:               0x00,
-		ExtensionGrease0:              [4]byte{0x3a, 0x3a, 0x00, 0x00},
-		ExtensionRenegotiation:        [5]byte{0xff, 0x01, 0x00, 0x01, 0x00},
-		ExtensionExtendedMasterSecret: [4]byte{0x00, 0x17, 0x00, 0x00},
-		ExtensionSupportedGroups: []byte{
-			0x00, 0x0a, // Type supported_groups
-			0x00, 0x04, // Length
-			0x00, 0x02, // Supported Groups List Length
-			0x00, 0x17, // Supported Group: secp256r1
-		},
-		ExtensionEcPointFormats: [6]byte{0x00, 0x0b, 0x00, 0x02, 0x01, 0x00},
-		ExtensionSessionTicket:  [4]byte{0x00, 0x23, 0x00, 0x00},
-		// ExtensionStatusRequest:  [9]byte{0x00, 0x05, 0x00, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00},
-		ExtensionSignatureAlgorithm: []byte{
-			0x00, 0x0d, // Type signature_algorithms
-			0x00, 0x06, // Length
-			0x00, 0x04, // Signature Hash Algorithms Length
-			0x04, 0x01, // Signature Algorithm: rsa_pkcs1_sha256 (0x0401)
-			0x04, 0x03, // Signature Algorithm: ecdsa_secp256r1_sha256 (0x0403)
-		},
-		ExtensionSignedCertificateTimestamp: [4]byte{0x00, 0x12, 0x00, 0x00},
-		ExtensionGrease1:                    [5]byte{0x4a, 0x4a, 0x00, 0x01, 0x00},
-		ExtensionServerName:                 ext_server_name,
+	msg.AddExtension(types.EXT_TYPE_SERVER_NAME, ext_server_name)
+	msg.AddExtension(types.EXT_TYPE_EXTENDED_MASTER_SECRET, nil)
+	msg.AddExtension(types.EXT_TYPE_RENEGOTIATION_INFO, []byte{0x00})
+	msg.AddExtension(types.EXT_TYPE_SUPPORTED_GROUPS, []byte{
+		0x00, 0x08, // List Length
+		0xba, 0xba, // GREASE
+		0x00, 0x1d, // x25519
+		0x00, 0x17, // secp256r1
+		0x00, 0x18, // secp384r1
+	})
+	msg.AddExtension(types.EXT_TYPE_EC_POINT_FORMATS, []byte{
+		0x01, // List Length
+		0x00, // Uncompressed
+	})
+
+	msg.AddExtension(types.EXT_TYPE_SESSION_TICKET, nil)
+	msg.AddExtension(types.EXT_TYPE_STATUS_REQUEST, []byte{0x01, 0x00, 0x00, 0x00, 0x00})
+	msg.AddExtension(types.EXT_TYPE_SIGNATURE_ALGORITHMS, []byte{
+		0x00, 0x04, // List Length TODO more signatures
+		0x04, 0x01, // Signature Algorithm: rsa_pkcs1_sha256 (0x0401)
+		0x04, 0x03, // Signature Algorithm: ecdsa_secp256r1_sha256 (0x0403)
+	})
+
+	msg.AddExtension(types.EXT_TYPE_SIGNED_CERTIFICATE_TIMESTAMP, nil)
+	msg.AddExtension(types.EXT_TYPE_GREASE_END, []byte{0x00})
+
+	var ext_len uint32 = 0
+
+	for _, ext := range msg.Extensions {
+		ext_len += ext.Size()
 	}
 
-	msg.ExtensionsLength = uint16(len(msg.ExtensionGrease0) +
-		len(msg.ExtensionServerName) +
-		len(msg.ExtensionExtendedMasterSecret) +
-		len(msg.ExtensionRenegotiation) +
-		len(msg.ExtensionSupportedGroups) +
-		len(msg.ExtensionEcPointFormats) +
-		len(msg.ExtensionSessionTicket) +
-		// len(msg.ExtensionStatusRequest) +
-		len(msg.ExtensionSignatureAlgorithm) +
-		len(msg.ExtensionSignedCertificateTimestamp) +
-		len(msg.ExtensionGrease1))
+	msg.ExtensionsLength = uint16(ext_len)
 
 	return msg
 }
 
-func MakeClientHello(tlsVersion uint16, host string) ClientHello {
-	clientHello := ClientHello{}
-
-	recordHeader := model.RecordHeader{}
-	recordHeader.Type = constants.RecordHandshake
-	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.0")
-
-	handshakeHeader := model.HandshakeHeader{}
-	handshakeHeader.MessageType = constants.HandshakeClientHello
-
-	clientHello.ClientVersion = helpers.ConvertIntToByteArray(tlsVersion)
-	clientRandom := make([]byte, 32)
-	_, err := rand.Read(clientRandom)
-	if err != nil {
-		fmt.Println(err)
+func (msg *ClientHelloMessage) AddExtension(ext_type uint16, data []byte) {
+	ext := types.Extension{
+		Header: types.ExtensionHeader{
+			Type:   ext_type,
+			Length: uint16(len(data)),
+		},
+		Data: data,
 	}
-
-	copy(clientHello.ClientRandom[:], clientRandom)
-
-	clientHello.SessionID = [1]byte{0x00}
-
-	suitesByteCode := constants.GCipherSuites.GetSuiteByteCodes(constants.GCipherSuites.GetAllSuites())
-	// According to TLS 1.2 documentation, part 7.4.3:
-	// Server Key Exchange Message is sent by the server only for certain key exchange message, including ECDHE
-
-	clientHello.CipherSuite = suitesByteCode[:]
-	clientHello.CipherSuiteLength = helpers.ConvertIntToByteArray(uint16(len(suitesByteCode)))
-
-	clientHello.CompressionMethods = []byte{0x00}
-	clientHello.CompressionMethodsLength = [1]byte{0x01}
-
-	clientHello.ExtensionSupportedGroups = []byte{
-		0x00, 0x0a, // Type supported_groups
-		0x00, 0x04, // Length
-		0x00, 0x02, // Supported Groups List Length
-		0x00, 0x17, // Supported Group: secp256r1
-	}
-
-	clientHello.ExtensionSignatureAlgorithm = []byte{
-		0x00, 0x0d, // Type signature_algorithms
-		0x00, 0x06, // Length
-		0x00, 0x04, // Signature Hash Algorithms Length
-		0x04, 0x01, // Signature Algorithm: rsa_pkcs1_sha256 (0x0401)
-		0x04, 0x03, // Signature Algorithm: ecdsa_secp256r1_sha256 (0x0403)
-	}
-
-	serverName := []byte(host)
-	serverNameExtensionLen := helpers.ConvertIntToByteArray(uint16(len(serverName) + 5))
-	serverNameListLen := helpers.ConvertIntToByteArray(uint16(len(serverName) + 3))
-	serverNameLen := helpers.ConvertIntToByteArray(uint16(len(serverName)))
-
-	extensionServerName := []byte{
-		0x00, 0x00, // Extension type: server_name
-	}
-
-	extensionServerName = append(extensionServerName, serverNameExtensionLen[:]...)
-	extensionServerName = append(extensionServerName, serverNameListLen[:]...)
-	extensionServerName = append(extensionServerName, 0x00) // Type: host name
-	extensionServerName = append(extensionServerName, serverNameLen[:]...)
-	extensionServerName = append(extensionServerName, serverName[:]...)
-	clientHello.ExtensionServerName = extensionServerName
-
-	clientHello.ExtensionsLength = helpers.ConvertIntToByteArray(uint16(len(clientHello.ExtensionSupportedGroups) + len(clientHello.ExtensionSignatureAlgorithm) + len(clientHello.ExtensionServerName)))
-
-	handshakeHeader.MessageLength = clientHello.getHandshakeHeaderLength()
-	clientHello.HandshakeHeader = handshakeHeader
-
-	recordHeader.Length = clientHello.getRecordLength()
-	clientHello.RecordHeader = recordHeader
-
-	return clientHello
+	msg.Extensions = append(msg.Extensions, ext)
 }
 
-func (clientHello ClientHello) getHandshakeHeaderLength() [3]byte {
-	var length [3]byte
-	var k int
+func (msg ClientHelloMessage) Size() int {
+	var size = 0
 
-	k = len(clientHello.ClientVersion)
-	k += len(clientHello.ClientRandom)
-	k += len(clientHello.SessionID)
-	k += len(clientHello.CipherSuiteLength)
-	k += len(clientHello.CipherSuite)
-	k += len(clientHello.CompressionMethodsLength)
-	k += len(clientHello.CompressionMethods)
-	k += len(clientHello.ExtensionsLength)
-	k += len(clientHello.ExtensionSupportedGroups)
-	k += len(clientHello.ExtensionSignatureAlgorithm)
-	k += len(clientHello.ExtensionServerName)
+	size += 2                                 // version
+	size += len(msg.Random)                   // random
+	size += 1                                 // session id length
+	size += int(msg.SessionIdLength)          // session id
+	size += 2                                 // cipher suite length
+	size += int(msg.CipherSuiteLength)        //cipher suites
+	size += 1                                 // compression methods length
+	size += int(msg.CompressionMethodsLength) // compression methods
+	size += 2                                 // extensions length
 
-	tmp := helpers.ConvertIntToByteArray(uint16(k))
-	length[0] = 0x00
-	length[1] = tmp[0]
-	length[2] = tmp[1]
+	for _, ext := range msg.Extensions {
+		size += int(ext.Size()) //extensions length
+	}
 
-	return length
+	return size
 }
 
-func (clientHello ClientHello) getRecordLength() [2]byte {
-	tmp := int(helpers.Convert3ByteArrayToUInt32(clientHello.HandshakeHeader.MessageLength))
-	tmp += 1 // size of MessageType
-	tmp += len(clientHello.HandshakeHeader.MessageLength)
+func (msg ClientHelloMessage) ToBytes() []byte {
+	buf := common.NewBuffer()
+	buf.WriteUint16(msg.Version)
+	buf.Write(msg.Random[:])
+	buf.WriteUint8(msg.SessionIdLength)
+	buf.WriteUint16(msg.CipherSuiteLength)
+	for _, c := range msg.CipherSuite {
+		buf.WriteUint16(c)
+	}
+	buf.WriteUint8(msg.CompressionMethodsLength)
+	buf.Write(msg.CompressionMethods)
+	buf.WriteUint16(msg.ExtensionsLength)
 
-	return helpers.ConvertIntToByteArray(uint16(tmp))
+	for _, ext := range msg.Extensions {
+		buf.Write(ext.ToBytes())
+	}
+
+	return buf.Drain()
 }
 
-func (clientHello ClientHello) GetClientHelloPayload() []byte {
-	var payload []byte
+func (msg ClientHelloMessage) String() string {
+	out := ""
+	out += fmt.Sprintf("    Version...........: %#04x - %s\n", msg.Version, types.VersionName(msg.Version))
+	out += fmt.Sprintf("    Random............: % x\n", msg.Random)
+	out += fmt.Sprintf("    Session ID........: %#02x\n", msg.SessionIdLength)
+	out += fmt.Sprintf("    CipherSuite Len...: %#04x\n", msg.CipherSuiteLength)
+	out += fmt.Sprintf("    CipherSuites......:\n")
+	for _, c := range msg.CipherSuite {
+		out += fmt.Sprintf("      %s\n", types.CipherSuites[c].Name)
+	}
+	out += fmt.Sprintf("    CompressionMethods Len..: %#02x\n", msg.CompressionMethodsLength)
+	out += fmt.Sprintf("    CompressionMethods......: % x\n", msg.CompressionMethods)
+	out += fmt.Sprintf("    ExtensionsLength Len....: %#04x\n", msg.ExtensionsLength)
+	out += fmt.Sprintf("    Extensions..............:\n")
+	for _, ext := range msg.Extensions {
+		out += fmt.Sprintf("      %s\n", ext)
+	}
+	return out
+}
 
-	payload = append(payload, clientHello.RecordHeader.Type)
-	payload = append(payload, clientHello.RecordHeader.ProtocolVersion[:]...)
-	payload = append(payload, clientHello.RecordHeader.Length[:]...)
-	payload = append(payload, clientHello.HandshakeHeader.MessageType)
-	payload = append(payload, clientHello.HandshakeHeader.MessageLength[:]...)
-	payload = append(payload, clientHello.ClientVersion[:]...)
-	payload = append(payload, clientHello.ClientRandom[:]...)
-	payload = append(payload, clientHello.SessionID[:]...)
-	payload = append(payload, clientHello.CipherSuiteLength[:]...)
-	payload = append(payload, clientHello.CipherSuite[:]...)
-	payload = append(payload, clientHello.CompressionMethodsLength[:]...)
-	payload = append(payload, clientHello.CompressionMethods...)
-	payload = append(payload, clientHello.ExtensionsLength[:]...)
-	payload = append(payload, clientHello.ExtensionSupportedGroups...)
-	payload = append(payload, clientHello.ExtensionSignatureAlgorithm...)
-	payload = append(payload, clientHello.ExtensionServerName...)
+type ClientHello struct {
+	RecordHeader    types.RecordHeader
+	HandshakeHeader types.HandshakeHeader
+	Message         ClientHelloMessage
+}
 
-	return payload
+func NewClientHello(tls_version uint16, host string) ClientHello {
+	msg := NewClientHelloMessage(tls_version, host)
+	msg_size := msg.Size()
+
+	record := ClientHello{
+		RecordHeader: types.RecordHeader{
+			ContentType: types.RECORD_TYPE_HANDSHAKE,
+			Version:     types.PROTOCOL_VERSION_TLS10,
+			Length:      uint16(msg_size + types.HANDSHAKE_HEADER_SIZE),
+		},
+		HandshakeHeader: types.HandshakeHeader{
+			Type:   types.HS_TYPE_CLIENT_HELLO,
+			Length: uint32(msg_size),
+		},
+		Message: msg,
+	}
+	return record
+}
+
+func (clientHello ClientHello) ToBytes() []byte {
+	buf := common.NewBuffer()
+	buf.Write(clientHello.RecordHeader.ToBytes())
+	buf.Write(clientHello.HandshakeHeader.ToBytes())
+	buf.Write(clientHello.Message.ToBytes())
+	return buf.Drain()
 }
 
 func (clientHello ClientHello) String() string {
-	out := "Client Hello\n"
-	out += fmt.Sprintf("%8s", clientHello.RecordHeader)
-	out += fmt.Sprintf("%8s", clientHello.HandshakeHeader)
-	out += fmt.Sprintf("  Client Version.....: % x - %s\n", clientHello.ClientVersion, constants.GTlsVersions.GetVersionForByteCode(clientHello.ClientVersion))
-	out += fmt.Sprintf("  Client Random......: % x\n", clientHello.ClientRandom)
-	out += fmt.Sprintf("  Session ID.........: % x\n", clientHello.SessionID)
-	out += fmt.Sprintf("  CipherSuite Len....: % x\n", clientHello.CipherSuiteLength)
-	out += fmt.Sprintf("  CipherSuites.......:\n")
-	for _, c := range helpers.ConvertByteArrayToCipherSuites(clientHello.CipherSuite) {
-		out += fmt.Sprintf("       %s\n", c)
-	}
-	out += fmt.Sprintf("  CompressionMethods Len..: % x\n", clientHello.CompressionMethodsLength)
-	out += fmt.Sprintf("  CompressionMethods..: % x\n", clientHello.CompressionMethods)
-
-	out += fmt.Sprintf("  ExtensionsLength Len..: % x\n", clientHello.ExtensionsLength)
-	out += fmt.Sprintf("  ExtensionSupportedGroups..: % x\n", clientHello.ExtensionSupportedGroups)
-	out += fmt.Sprintf("  ExtensionSignatureAlgorithm..: % x\n", clientHello.ExtensionSignatureAlgorithm)
-	out += fmt.Sprintf("  ExtensionServerName..: % x\n", clientHello.ExtensionServerName)
-
+	out := "------------------------- Client Hello ------------------------- \n"
+	out += fmt.Sprintf("%4s", clientHello.RecordHeader)
+	out += fmt.Sprintf("%4s", clientHello.HandshakeHeader)
+	out += fmt.Sprintf("%8s", clientHello.Message)
 	return out
 }

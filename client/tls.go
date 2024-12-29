@@ -72,13 +72,14 @@ func (client *TLSClient) Close() error {
 func (c *TLSClient) Handshake() error {
 
 	//sending client hello
-	clientHello := message.MakeClientHello(c.version, c.host)
-	c.securityParams.ClientRandom = clientHello.ClientRandom
-	clientHelloPayload := clientHello.GetClientHelloPayload()
-	c.messages.Write(helpers.IgnoreRecordHeader(clientHelloPayload))
+	client_hello_record := message.NewClientHello(c.version, c.host)
+	c.securityParams.ClientRandom = client_hello_record.Message.Random
+	client_hello_bytes := client_hello_record.ToBytes()
+	c.messages.Write(helpers.IgnoreRecordHeader(client_hello_bytes))
 
-	fmt.Println(clientHello)
-	if err := c.Write(clientHelloPayload); err != nil {
+	fmt.Println(client_hello_record)
+
+	if err := c.Write(client_hello_bytes); err != nil {
 		return nil
 	}
 
@@ -111,6 +112,11 @@ func (client *TLSClient) Read() ([]byte, error) {
 	body_size := int(binary.BigEndian.Uint16(header_bytes[3:5]))
 
 	body_bytes, err := client.tcp.Read(body_size)
+
+	if err != nil {
+		fmt.Println("Read from server failed:", err.Error())
+		return nil, err
+	}
 
 	record := append(header_bytes, body_bytes...)
 

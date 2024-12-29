@@ -12,7 +12,17 @@ const (
 )
 
 const (
-	EXT_TYPE_SERVER_NAME uint16 = 0x0000
+	EXT_TYPE_GREASE_BEGIN                 uint16 = 0x3a3a
+	EXT_TYPE_SERVER_NAME                  uint16 = 0x0000
+	EXT_TYPE_EXTENDED_MASTER_SECRET       uint16 = 0x0017
+	EXT_TYPE_RENEGOTIATION_INFO           uint16 = 0xff01
+	EXT_TYPE_SUPPORTED_GROUPS             uint16 = 0x000a
+	EXT_TYPE_EC_POINT_FORMATS             uint16 = 0x000b
+	EXT_TYPE_SESSION_TICKET               uint16 = 0x0023
+	EXT_TYPE_STATUS_REQUEST               uint16 = 0x0005
+	EXT_TYPE_SIGNATURE_ALGORITHMS         uint16 = 0x000d
+	EXT_TYPE_SIGNED_CERTIFICATE_TIMESTAMP uint16 = 0x0012
+	EXT_TYPE_GREASE_END                   uint16 = 0x4a4a
 )
 
 type ExtensionHeader struct {
@@ -36,13 +46,6 @@ func (h ExtensionHeader) ToBytes() []byte {
 	return buf.Drain()
 }
 
-func (h ExtensionHeader) String() string {
-	out := "Extension Header\n"
-	out += fmt.Sprintf("  Type............: %#04x\n", h.Type)
-	out += fmt.Sprintf("  Length..........: %#04x\n", h.Length)
-	return out
-}
-
 type Extension struct {
 	Header ExtensionHeader
 	Data   []byte
@@ -60,8 +63,13 @@ func (e *Extension) FromBytes(data []byte) error {
 }
 
 func (e Extension) ToBytes() []byte {
-	buf := common.NewBuffer()
-	buf.Write(e.Header.ToBytes())
-	buf.Write(e.Data)
-	return buf.Drain()
+	return append(e.Header.ToBytes(), e.Data...)
+}
+
+func (e Extension) Size() uint32 {
+	return uint32(e.Header.Length + EXTENSION_HEADER_SIZE)
+}
+
+func (e Extension) String() string {
+	return fmt.Sprintf("{ Type: %#04x, Length: %#04x, Data: % x }", e.Header.Type, e.Header.Length, e.Data)
 }

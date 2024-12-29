@@ -11,6 +11,13 @@ const (
 	RECORD_HEADER_SIZE = 5 //record header size counter in bytes.
 )
 
+const (
+	RECORD_TYPE_HANDSHAKE          = 0x16
+	RECORD_TYPE_CHANGE_CIPHER_SPEC = 0x14
+	RECORD_TYPE_APPLICATION_DATA   = 0x17
+	RECORD_TYPE_ENCRYPTED_ALERT    = 0x15
+)
+
 type RecordHeader struct {
 	ContentType uint8
 	Version     uint16
@@ -37,8 +44,8 @@ func (recordHeader RecordHeader) ToBytes() []byte {
 
 func (h RecordHeader) String() string {
 	out := "Record Header\n"
-	out += fmt.Sprintf("    ContentType.....: % x\n", h.ContentType)
-	out += fmt.Sprintf("    Version.........: % x\n", h.Version)
-	out += fmt.Sprintf("    Length..........: % x\n", h.Length)
+	out += fmt.Sprintf("    ContentType.....: %#02x\n", h.ContentType)
+	out += fmt.Sprintf("    Version.........: %#04x\n", h.Version)
+	out += fmt.Sprintf("    Length..........: %#04x\n", h.Length)
 	return out
 }

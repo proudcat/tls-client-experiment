@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,4 +48,10 @@ func TestExtension_ToBytes(t *testing.T) {
 	}
 	expected, _ := hex.DecodeString("0000000401020304")
 	assert.Equal(t, expected, ext.ToBytes())
+
+	fmt.Println(length(nil))
+}
+
+func length(data []byte) int {
+	return len(data)
 }

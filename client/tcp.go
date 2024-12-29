@@ -31,8 +31,6 @@ func DialTCP(endpoint string) (*TCPClient, error) {
 		return nil, err
 	}
 
-	fmt.Println("connected")
-
 	client := &TCPClient{
 		in_bound_buf: common.NewBuffer(),
 		conn:         conn,
