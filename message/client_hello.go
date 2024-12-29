@@ -12,25 +12,26 @@ import (
 )
 
 type ClientHelloMessage struct {
-	Version                             uint16
-	Random                              [32]byte
-	SessionIdLength                     byte
-	CipherSuiteLength                   uint16
-	CipherSuite                         []uint16
-	CompressionMethodsLength            byte
-	CompressionMethods                  []byte
-	ExtensionsLength                    uint16
-	ExtensionGrease0                    [4]byte
-	ExtensionServerName                 []byte
-	ExtensionExtendedMasterSecret       [4]byte
-	ExtensionRenegotiation              [5]byte
-	ExtensionSupportedGroups            []byte
-	ExtensionEcPointFormats             [6]byte
-	ExtensionSessionTicket              [4]byte
-	ExtensionStatusRequest              [9]byte
+	Version                       uint16
+	Random                        [32]byte
+	SessionIdLength               byte
+	CipherSuiteLength             uint16
+	CipherSuite                   []uint16
+	CompressionMethodsLength      byte
+	CompressionMethods            []byte
+	ExtensionsLength              uint16
+	ExtensionGrease0              [4]byte
+	ExtensionServerName           []byte
+	ExtensionExtendedMasterSecret [4]byte
+	ExtensionRenegotiation        [5]byte
+	ExtensionSupportedGroups      []byte
+	ExtensionEcPointFormats       [6]byte
+	ExtensionSessionTicket        [4]byte
+	// ExtensionStatusRequest              [9]byte
 	ExtensionSignatureAlgorithm         []byte
 	ExtensionSignedCertificateTimestamp [4]byte
 	ExtensionGrease1                    [5]byte
+	Extensions                          map[uint16][]byte
 }
 
 type ClientHello struct {
@@ -88,7 +89,7 @@ func NewClientHelloMessage(tls_version uint16, host string) *ClientHelloMessage 
 		},
 		ExtensionEcPointFormats: [6]byte{0x00, 0x0b, 0x00, 0x02, 0x01, 0x00},
 		ExtensionSessionTicket:  [4]byte{0x00, 0x23, 0x00, 0x00},
-		ExtensionStatusRequest:  [9]byte{0x00, 0x05, 0x00, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00},
+		// ExtensionStatusRequest:  [9]byte{0x00, 0x05, 0x00, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00},
 		ExtensionSignatureAlgorithm: []byte{
 			0x00, 0x0d, // Type signature_algorithms
 			0x00, 0x06, // Length
@@ -108,7 +109,7 @@ func NewClientHelloMessage(tls_version uint16, host string) *ClientHelloMessage 
 		len(msg.ExtensionSupportedGroups) +
 		len(msg.ExtensionEcPointFormats) +
 		len(msg.ExtensionSessionTicket) +
-		len(msg.ExtensionStatusRequest) +
+		// len(msg.ExtensionStatusRequest) +
 		len(msg.ExtensionSignatureAlgorithm) +
 		len(msg.ExtensionSignedCertificateTimestamp) +
 		len(msg.ExtensionGrease1))

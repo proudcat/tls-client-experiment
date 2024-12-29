@@ -11,6 +11,10 @@ const (
 	EXTENSION_HEADER_SIZE = 4 //extension header size counter in bytes.
 )
 
+const (
+	EXT_TYPE_SERVER_NAME uint16 = 0x0000
+)
+
 type ExtensionHeader struct {
 	Type   uint16
 	Length uint16
@@ -34,7 +38,30 @@ func (h ExtensionHeader) ToBytes() []byte {
 
 func (h ExtensionHeader) String() string {
 	out := "Extension Header\n"
-	out += fmt.Sprintf("    Type............: % x\n", h.Type)
-	out += fmt.Sprintf("    Length..........: % x\n", h.Length)
+	out += fmt.Sprintf("  Type............: %#04x\n", h.Type)
+	out += fmt.Sprintf("  Length..........: %#04x\n", h.Length)
 	return out
+}
+
+type Extension struct {
+	Header ExtensionHeader
+	Data   []byte
+}
+
+func (e *Extension) FromBytes(data []byte) error {
+	if len(data) < EXTENSION_HEADER_SIZE {
+		return fmt.Errorf("invalid extension size")
+	}
+	if err := e.Header.FromBytes(data[:EXTENSION_HEADER_SIZE]); err != nil {
+		return err
+	}
+	e.Data = data[EXTENSION_HEADER_SIZE:]
+	return nil
+}
+
+func (e Extension) ToBytes() []byte {
+	buf := common.NewBuffer()
+	buf.Write(e.Header.ToBytes())
+	buf.Write(e.Data)
+	return buf.Drain()
 }
