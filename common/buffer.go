@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	BUFFER_GROW_SIZE = 64              // 64 bytes
+	BUFFER_GROW_SIZE = 16              // 64 bytes
 	MAX_SIZE         = 1024 * 1024 * 8 // max buffer size is 8M
 )
 

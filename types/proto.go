@@ -24,13 +24,6 @@ func VersionName(version uint16) string {
 	}
 }
 
-type ExtensionType uint16
-
-const (
-	EXT_TYPE_SESSION_TICKET ExtensionType = 0x0023
-	EXT_TYPE_STATUS_REQUEST ExtensionType = 0x0005
-)
-
 type ContentType uint8
 
 const (
