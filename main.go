@@ -1,7 +1,10 @@
 package main
 
 import (
-	core "github.com/proudcat/tls-client-experiment/cmd"
+	"net/http"
+
+	"github.com/proudcat/tls-client-experiment/client"
+	"github.com/proudcat/tls-client-experiment/types"
 )
 
 func main() {
@@ -10,7 +13,7 @@ func main() {
 
 	host := "www.ssllabs.com"
 
-	client := core.MakeTLSClient(host, "TLS 1.2")
-	client.Execute("GET / HTTP/1.1")
-	client.Terminate()
+	https_client := client.NewHTTPSClient(host, types.VersionTLS12)
+	https_client.Request(http.MethodGet, "/", nil) // "GET / HTTP/1.1")
+	https_client.Close()
 }

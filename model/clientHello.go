@@ -27,7 +27,7 @@ type ClientHello struct {
 	ExtensionServerName         []byte
 }
 
-func MakeClientHello(tlsVersion [2]byte, host string) ClientHello {
+func MakeClientHello(tlsVersion uint16, host string) ClientHello {
 	clientHello := ClientHello{}
 
 	recordHeader := RecordHeader{}
@@ -37,7 +37,7 @@ func MakeClientHello(tlsVersion [2]byte, host string) ClientHello {
 	handshakeHeader := HandshakeHeader{}
 	handshakeHeader.MessageType = constants.HandshakeClientHello
 
-	clientHello.ClientVersion = tlsVersion
+	clientHello.ClientVersion = helpers.ConvertIntToByteArray(tlsVersion)
 	clientRandom := make([]byte, 32)
 	_, err := rand.Read(clientRandom)
 	if err != nil {

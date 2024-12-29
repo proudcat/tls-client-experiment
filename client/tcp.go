@@ -1,4 +1,4 @@
-package net
+package client
 
 import (
 	"fmt"
@@ -9,8 +9,6 @@ import (
 )
 
 type TCPClient struct {
-	// io.Reader
-	// io.Writer
 	io.Closer
 	conn         *net.TCPConn
 	in_bound_buf *common.Buffer
