@@ -21,16 +21,16 @@ type ServerHelloMessage struct {
 
 func (msg ServerHelloMessage) String() string {
 	out := ""
-	out += fmt.Sprintf("    Version.....: %#04x - %s\n", msg.Version, types.VersionName(msg.Version))
-	out += fmt.Sprintf("    Random......: % x\n", msg.Random)
-	out += fmt.Sprintf("    Session ID length..: %#02x\n", msg.SessionIDLength)
-	out += fmt.Sprintf("    Session ID.........: % x\n", msg.SessionID)
-	out += fmt.Sprintf("    CipherSuites.......:\n")
-	out += fmt.Sprintf("    CipherSuite........: %#04x - %s\n", msg.CipherSuite, types.CipherSuites[msg.CipherSuite].Name)
-	out += fmt.Sprintf("    CompressionMethod..: %#02x\n", msg.CompressionMethod)
-	out += fmt.Sprintf("    Extensions.........:\n")
+	out += fmt.Sprintf("Version.....: %#04x - %s\n", msg.Version, types.VersionName(msg.Version))
+	out += fmt.Sprintf("Random......: % x\n", msg.Random)
+	out += fmt.Sprintf("Session ID length..: %#02x\n", msg.SessionIDLength)
+	out += fmt.Sprintf("Session ID.........: % x\n", msg.SessionID)
+	out += fmt.Sprintf("CipherSuites.......:\n")
+	out += fmt.Sprintf("CipherSuite........: %#04x - %s\n", msg.CipherSuite, types.CipherSuites[msg.CipherSuite].Name)
+	out += fmt.Sprintf("CompressionMethod..: %#02x\n", msg.CompressionMethod)
+	out += fmt.Sprintf("Extensions.........:\n")
 	for _, ext := range msg.Extensions {
-		out += fmt.Sprintf("      %s\n", ext)
+		out += fmt.Sprintf("  %s\n", ext)
 	}
 	return out
 }
@@ -133,7 +133,7 @@ func (r ServerHello) SupportExtension(ext_type uint16) bool {
 }
 
 func (r ServerHello) String() string {
-	out := "Server Hello\n"
+	out := "------------------------- Server Hello ------------------------- \n"
 	out += fmt.Sprint(r.RecordHeader)
 	out += fmt.Sprint(r.HandshakeHeader)
 	out += fmt.Sprint(r.Message)

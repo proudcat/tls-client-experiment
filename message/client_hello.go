@@ -142,20 +142,20 @@ func (msg ClientHelloMessage) ToBytes() []byte {
 
 func (msg ClientHelloMessage) String() string {
 	out := ""
-	out += fmt.Sprintf("    Version...........: %#04x - %s\n", msg.Version, types.VersionName(msg.Version))
-	out += fmt.Sprintf("    Random............: % x\n", msg.Random)
-	out += fmt.Sprintf("    Session ID........: %#02x\n", msg.SessionIdLength)
-	out += fmt.Sprintf("    CipherSuite Len...: %#04x\n", msg.CipherSuiteLength)
-	out += fmt.Sprintf("    CipherSuites......:\n")
+	out += fmt.Sprintf("Version...........: %#04x - %s\n", msg.Version, types.VersionName(msg.Version))
+	out += fmt.Sprintf("Random............: % x\n", msg.Random)
+	out += fmt.Sprintf("Session ID........: %#02x\n", msg.SessionIdLength)
+	out += fmt.Sprintf("CipherSuite Len...: %#04x\n", msg.CipherSuiteLength)
+	out += fmt.Sprintf("CipherSuites......:\n")
 	for _, c := range msg.CipherSuite {
-		out += fmt.Sprintf("      %s\n", types.CipherSuites[c].Name)
+		out += fmt.Sprintf("  %s\n", types.CipherSuites[c].Name)
 	}
-	out += fmt.Sprintf("    CompressionMethods Len..: %#02x\n", msg.CompressionMethodsLength)
-	out += fmt.Sprintf("    CompressionMethods......: % x\n", msg.CompressionMethods)
-	out += fmt.Sprintf("    ExtensionsLength Len....: %#04x\n", msg.ExtensionsLength)
-	out += fmt.Sprintf("    Extensions..............:\n")
+	out += fmt.Sprintf("CompressionMethods Len..: %#02x\n", msg.CompressionMethodsLength)
+	out += fmt.Sprintf("CompressionMethods......: % x\n", msg.CompressionMethods)
+	out += fmt.Sprintf("ExtensionsLength Len....: %#04x\n", msg.ExtensionsLength)
+	out += fmt.Sprintf("Extensions..............:\n")
 	for _, ext := range msg.Extensions {
-		out += fmt.Sprintf("      %s\n", ext)
+		out += fmt.Sprintf("  %s\n", ext)
 	}
 	return out
 }

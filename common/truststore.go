@@ -1,4 +1,4 @@
-package certificate
+package common
 
 const TRUST_STORE = `
 -----BEGIN CERTIFICATE-----

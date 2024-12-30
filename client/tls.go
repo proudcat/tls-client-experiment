@@ -8,11 +8,9 @@ import (
 	"os"
 
 	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/constants"
 	"github.com/proudcat/tls-client-experiment/coreUtils"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/message"
-	"github.com/proudcat/tls-client-experiment/model"
 	"github.com/proudcat/tls-client-experiment/types"
 )
 
@@ -108,7 +106,7 @@ func (c *TLSClient) ReadRecord() ([]byte, error) {
 
 func (c *TLSClient) Handshake() error {
 
-	/*********** send client_hello ***********/
+	/*********** send client hello ***********/
 	client_hello_record := message.NewClientHello(c.version, c.host)
 	c.securityParams.ClientRandom = client_hello_record.Message.Random
 	client_hello_bytes := client_hello_record.ToBytes()
@@ -118,7 +116,7 @@ func (c *TLSClient) Handshake() error {
 		return nil
 	}
 
-	/*********** receive server_hello ***********/
+	/*********** receive server hello ***********/
 	server_hello_bytes, err := c.ReadRecord()
 	if err != nil {
 		return err
@@ -130,8 +128,38 @@ func (c *TLSClient) Handshake() error {
 	server_hello.FromBuffer(recv_buf)
 	c.securityParams.ServerRandom = server_hello.Message.Random
 	c.cipherSuite = server_hello.Message.CipherSuite
-	c.messages.Write(helpers.IgnoreRecordHeader(server_hello_bytes))
+	c.messages.Write(server_hello_bytes[5:])
 	fmt.Println(server_hello)
+
+	/*********** receive server certificate ***********/
+	if recv_buf.Size() > 0 {
+		// multiple message handshake which means there are multiple handshakes in on record.
+		// |record Header| Server Hello | Certificate |...|
+		// we should prepend record header for Certificate Handshake
+		buf := common.NewBuffer()
+		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00}) // prepend record header
+		buf.Write(recv_buf.Drain())
+		recv_buf.Write(buf.PeekAllBytes())
+	} else {
+		server_certificate_bytes, err := c.ReadRecord()
+		if err != nil {
+			return err
+		}
+		c.messages.Write(server_certificate_bytes[5:])
+		recv_buf.Write(server_certificate_bytes)
+	}
+	server_certificate := &message.ServerCertificate{}
+	server_certificate.FromBuffer(recv_buf)
+	fmt.Println(server_certificate)
+
+	roots, err := common.LoadTrustStore()
+	if err != nil {
+		return err
+	}
+
+	if valid := server_certificate.Verify(roots, c.host); !valid {
+		return fmt.Errorf("bad certificate chain")
+	}
 
 	// c.readServerResponse()
 	return nil
@@ -161,138 +189,4 @@ func (client *TLSClient) Read() ([]byte, error) {
 
 	fmt.Printf("Message received from server: %x\n", record)
 	return record, nil
-}
-
-func (client *TLSClient) readServerResponse() {
-	var answer []byte
-	isMultipleHandshakeMessages := false
-
-	answer, err := client.Read()
-	if err != nil {
-		fmt.Println(err)
-		client.Close()
-		os.Exit(1)
-	}
-	serverHello, left_answer, err := model.ParseServerHello(answer)
-	if err != nil {
-		fmt.Println(err)
-		client.Close()
-		os.Exit(1)
-	}
-	fmt.Println("Support Ticket:", serverHello.SupportTicket())
-
-	client.cipherSuite = binary.BigEndian.Uint16(serverHello.CipherSuite[:])
-	client.securityParams.ServerRandom = serverHello.ServerRandom
-	client.messages.Write(helpers.IgnoreRecordHeader(answer))
-
-	fmt.Println(serverHello)
-	//check is multiple handshake messages
-	if len(left_answer) == 0 {
-		answer, err = client.Read()
-		if err != nil {
-			fmt.Println(err)
-			client.Close()
-			os.Exit(1)
-		}
-	} else {
-		isMultipleHandshakeMessages = true
-		//prepend record header for the rest handshakes
-		restRecordBodyLength := helpers.ConvertIntToByteArray(uint16(len(left_answer)))
-		serverCertificateRecordHeader := append([]byte{0x16, 0x03, 0x03}, restRecordBodyLength[:]...)
-		left_answer = append(serverCertificateRecordHeader, left_answer...)
-		answer = left_answer
-	}
-
-	serverCertificate, left_answer, err := model.ParseServerCertificate(answer)
-	if err != nil {
-		fmt.Println(err)
-		client.Close()
-		os.Exit(1)
-	}
-
-	roots, err := model.LoadTrustStore()
-	if err != nil {
-		panic(err)
-	}
-
-	validCert := serverCertificate.Verify(roots, client.host)
-
-	if !validCert {
-		panic("bad certificate chain")
-	}
-
-	if !isMultipleHandshakeMessages {
-		client.messages.Write(helpers.IgnoreRecordHeader(answer))
-	}
-
-	fmt.Println(serverCertificate)
-	//check is multiple handshake messages
-	if len(left_answer) == 0 {
-		isMultipleHandshakeMessages = false
-		answer, err = client.Read()
-		if err != nil {
-			fmt.Println(err)
-			client.Close()
-			os.Exit(1)
-		}
-	} else {
-		isMultipleHandshakeMessages = true
-		restRecordBodyLength := helpers.ConvertIntToByteArray(uint16(len(left_answer)))
-		serverKeyExchangeRecordHeader := append([]byte{0x16, 0x03, 0x03}, restRecordBodyLength[:]...)
-		left_answer = append(serverKeyExchangeRecordHeader, left_answer...)
-		answer = left_answer
-	}
-
-	serverKeyExchange, left_answer, err := model.ParseServerKeyExchange(answer)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		if !isMultipleHandshakeMessages {
-			client.messages.Write(helpers.IgnoreRecordHeader(answer))
-		}
-
-		fmt.Println(serverKeyExchange)
-
-		//check is multiple handshake messages
-		if len(left_answer) == 0 {
-			isMultipleHandshakeMessages = false
-			answer, err = client.Read()
-			if err != nil {
-				fmt.Println(err)
-				client.Close()
-				os.Exit(1)
-			}
-		} else {
-			isMultipleHandshakeMessages = true
-			restRecordBodyLength := helpers.ConvertIntToByteArray(uint16(len(left_answer)))
-			serverHelloDoneRecordHeader := append([]byte{0x16, 0x03, 0x03}, restRecordBodyLength[:]...)
-			left_answer = append(serverHelloDoneRecordHeader, left_answer...)
-			answer = left_answer
-		}
-	}
-	client.securityParams.ServerKeyExchangePublicKey = serverKeyExchange.PublicKey
-	client.securityParams.Curve = constants.GCurves.GetCurveInfoForByteCode(serverKeyExchange.CurveID).Curve
-
-	if !serverKeyExchange.VerifySignature(&client.securityParams, serverCertificate.Certificates[0].Certificate.PublicKey) {
-		fmt.Println("Could not verify signature!")
-		client.Close()
-		os.Exit(1)
-	}
-
-	serverHelloDone, left_answer, err := model.ParseServerHelloDone(answer)
-	if err != nil {
-		fmt.Println(err)
-		client.Close()
-		os.Exit(1)
-	}
-
-	if len(left_answer) != 0 {
-		fmt.Println("Answer should be empty after ServerHelloDone!", len(answer), answer)
-	}
-
-	if !isMultipleHandshakeMessages {
-		client.messages.Write(helpers.IgnoreRecordHeader(answer))
-	}
-
-	fmt.Println(serverHelloDone)
 }
