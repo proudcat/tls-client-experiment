@@ -185,10 +185,10 @@ func (c *TLSClient) Handshake() error {
 	/*********** receive server_key_exchange ***********/
 	if recv_buf.Size() > 0 {
 		//multiple message handshake
-		header_prepended_buf := common.NewBuffer()
-		header_prepended_buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
-		header_prepended_buf.Write(recv_buf.Drain())
-		recv_buf.Write(header_prepended_buf.PeekAllBytes())
+		buf := common.NewBuffer()
+		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
+		buf.Write(recv_buf.Drain())
+		recv_buf.Write(buf.PeekAllBytes())
 	} else {
 		recv_bytes, err := c.ReadRecord()
 		if err != nil {
@@ -197,7 +197,7 @@ func (c *TLSClient) Handshake() error {
 		c.messages.Write(recv_bytes[5:])
 		recv_buf.Write(recv_bytes)
 	}
-	server_key_exchange := &message.ServerKeyExchange{}
+	server_key_exchange := message.ServerKeyExchange{}
 	server_key_exchange.FromBuffer(recv_buf)
 	fmt.Println(server_key_exchange)
 
@@ -208,6 +208,29 @@ func (c *TLSClient) Handshake() error {
 		return fmt.Errorf("could not verify signature")
 	} else {
 		fmt.Println("Signature verified!")
+	}
+
+	/*********** receive server hello done ***********/
+	server_hello_done := message.ServerHelloDone{}
+	if recv_buf.Size() > 0 {
+		//multiple message handshake
+		buf := common.NewBuffer()
+		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
+		buf.Write(recv_buf.Drain())
+		recv_buf.Write(buf.PeekAllBytes())
+	} else {
+		recv_bytes, err := c.ReadRecord()
+		if err != nil {
+			return err
+		}
+		c.messages.Write(recv_bytes[5:])
+		recv_buf.Write(recv_bytes)
+	}
+	server_hello_done.FromBuffer(recv_buf)
+	fmt.Println(server_hello_done)
+
+	if recv_buf.Size() > 0 {
+		return fmt.Errorf("unexpected data recv_buf should be empty. size: %d", recv_buf.Size())
 	}
 
 	// c.readServerResponse()
