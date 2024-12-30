@@ -1,4 +1,4 @@
-package cryptoHelpers
+package helpers
 
 import (
 	"crypto/aes"
@@ -8,8 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/proudcat/tls-client-experiment/coreUtils"
-	"github.com/proudcat/tls-client-experiment/helpers"
+	"github.com/proudcat/tls-client-experiment/common"
 )
 
 const (
@@ -21,7 +20,7 @@ const (
 // AEAD ciphers take as input a single key, a nonce, a plaintext, and
 // "additional data" to be included in the authentication check.
 // The key is either the client_write_key or the server_write_key. No MAC key is used.
-func Encrypt(clientKey, clientIV, plaintext []byte, additionalData *coreUtils.AdditionalData) ([]byte, error) {
+func Encrypt(clientKey, clientIV, plaintext []byte, seq byte, record_type byte, tls_version [2]byte) ([]byte, error) {
 	aesEncryptor, err := aes.NewCipher(clientKey)
 	if err != nil {
 		fmt.Println("Could not create the cipher: ", err.Error())
@@ -40,17 +39,22 @@ func Encrypt(clientKey, clientIV, plaintext []byte, additionalData *coreUtils.Ad
 	}
 	nonceIV := append(clientIV, nonce...)
 
-	additionalDataPayload := make([]byte, 7)
-	additionalDataPayload = append(additionalDataPayload, additionalData.SeqNumber)
-	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
-	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
+	buf := common.NewBuffer()
+	buf.WriteUint8(seq)
+	buf.WriteUint8(record_type)
+	buf.Write(tls_version[:])
+	buf.WriteUint16(uint16(len(plaintext)))
 
-	contentBytesLength := helpers.Uint16ToBytes(uint16(len(plaintext)))
-	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
+	// additionalDataPayload := make([]byte, 7)
+	// additionalDataPayload = append(additionalDataPayload, seq)
+	// additionalDataPayload = append(additionalDataPayload, record_type)
+	// additionalDataPayload = append(additionalDataPayload, tls_version[:]...)
+	// contentBytesLength := Uint16ToBytes(uint16(len(plaintext)))
+	// additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
 	// Seal encrypts and authenticates plaintext, authenticates the
 	// additional data (aad) and returns ciphertext together with authentication tag.
-	ciphertext := gcmAuthenticator.Seal(nil, nonceIV, plaintext, additionalDataPayload)
+	ciphertext := gcmAuthenticator.Seal(nil, nonceIV, plaintext, buf.Drain())
 	if ciphertext == nil {
 		fmt.Println("AEAD.Seal: Failed to encrypt message")
 		return nil, errors.New("math: Failed to encrypt message")
@@ -59,7 +63,7 @@ func Encrypt(clientKey, clientIV, plaintext []byte, additionalData *coreUtils.Ad
 	return append(nonce, ciphertext...), nil
 }
 
-func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData *coreUtils.AdditionalData) ([]byte, error) {
+func Decrypt(serverKey, serverIV, ciphertext []byte, seq byte, record_type byte, tls_version [2]byte) ([]byte, error) {
 	aesEncryptor, err := aes.NewCipher(serverKey)
 	if err != nil {
 		fmt.Println("Could not create the cipher: ", err.Error())
@@ -75,15 +79,21 @@ func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData *coreUtils.A
 	nonceIV := append(serverIV, nonce...)
 
 	// extend seqNumber to 8 bytes
-	additionalDataPayload := make([]byte, 7)
-	additionalDataPayload = append(additionalDataPayload, additionalData.SeqNumber)
-	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
-	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
+	// additionalDataPayload := make([]byte, 7)
+	// additionalDataPayload = append(additionalDataPayload, seq)
+	// additionalDataPayload = append(additionalDataPayload, record_type)
+	// additionalDataPayload = append(additionalDataPayload, tls_version[:]...)
 
-	contentBytesLength := helpers.Uint16ToBytes(uint16(len(rest) - AuthenticationTagSize))
-	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
+	// contentBytesLength := Uint16ToBytes(uint16(len(rest) - AuthenticationTagSize))
+	// additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
-	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, additionalDataPayload)
+	buf := common.NewBuffer()
+	buf.WriteUint8(seq)
+	buf.WriteUint8(record_type)
+	buf.Write(tls_version[:])
+	buf.WriteUint16(uint16(len(rest) - AuthenticationTagSize))
+
+	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, buf.Drain())
 	if err != nil {
 		fmt.Println("Failed to decrypt message: ", err.Error())
 		return nil, err

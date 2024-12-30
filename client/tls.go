@@ -8,6 +8,8 @@ import (
 	"os"
 
 	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/cryptoHelpers"
+	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/message"
 	"github.com/proudcat/tls-client-experiment/types"
 )
@@ -233,7 +235,39 @@ func (c *TLSClient) Handshake() error {
 		return fmt.Errorf("unexpected data recv_buf should be empty. size: %d", recv_buf.Size())
 	}
 
-	// c.readServerResponse()
+	/*********** client key exchange ***********/
+	client_key_exchange := message.NewClientKeyExchange(c.version, c.securityParams.Curve)
+	c.securityParams.ClientKeyExchangePrivateKey = client_key_exchange.PrivateKey
+	c.messages.Write(client_key_exchange.ToBytes()[5:])
+	fmt.Println(client_key_exchange)
+
+	/*********** client change cipher spec ***********/
+	client_change_cipher_spec := message.NewClientChangeCipherSpec(c.version)
+	fmt.Println(client_change_cipher_spec)
+
+	/*********** client finished ***********/
+	hash_messages := helpers.HashByteArray(types.CipherSuites[c.cipherSuite].HashingAlgorithm, c.messages.PeekAllBytes())
+	verify_data := cryptoHelpers.MakeClientVerifyData(&c.securityParams, hash_messages)
+	if verify_data == nil {
+		return fmt.Errorf("could not create VerifyData")
+	}
+	client_finished, err := message.MakeClientFinished(&c.securityParams, verify_data, c.version, c.clientSeqNumber)
+	if err != nil {
+		return err
+	}
+	c.clientSeqNumber += 1
+
+	client_final_payload := append(client_key_exchange.ToBytes(), client_change_cipher_spec.ToBytes()...)
+	client_final_payload = append(client_final_payload, client_finished.ToBytes()...)
+
+	c.messages.Write(client_finished.HandshakeHeader.ToBytes())
+	c.messages.Write(verify_data)
+	fmt.Println(client_finished)
+
+	if err := c.Write(client_final_payload); err != nil {
+		return err
+	}
+
 	return nil
 }
 
