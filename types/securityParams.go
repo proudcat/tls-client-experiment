@@ -4,7 +4,7 @@ import (
 	"crypto/elliptic"
 )
 
-type SecurityParams struct {
+type SecurityParameters struct {
 	ServerKeyExchangePublicKey  []byte
 	ClientKeyExchangePrivateKey []byte
 	Curve                       elliptic.Curve

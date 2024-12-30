@@ -40,7 +40,7 @@ type TLSClient struct {
 	clientSeqNumber byte
 	serverSeqNumber byte
 	cipherSuite     uint16
-	securityParams  types.SecurityParams
+	securityParams  types.SecurityParameters
 }
 
 func NewTLSClient(host string, version uint16) *TLSClient {
@@ -180,6 +180,34 @@ func (c *TLSClient) Handshake() error {
 		server_certificate_status := &message.ServerCertificateStatus{}
 		server_certificate_status.FromBuffer(recv_buf)
 		fmt.Println(server_certificate_status)
+	}
+
+	/*********** receive server_key_exchange ***********/
+	if recv_buf.Size() > 0 {
+		//multiple message handshake
+		header_prepended_buf := common.NewBuffer()
+		header_prepended_buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
+		header_prepended_buf.Write(recv_buf.Drain())
+		recv_buf.Write(header_prepended_buf.PeekAllBytes())
+	} else {
+		recv_bytes, err := c.ReadRecord()
+		if err != nil {
+			return err
+		}
+		c.messages.Write(recv_bytes[5:])
+		recv_buf.Write(recv_bytes)
+	}
+	server_key_exchange := &message.ServerKeyExchange{}
+	server_key_exchange.FromBuffer(recv_buf)
+	fmt.Println(server_key_exchange)
+
+	c.securityParams.ServerKeyExchangePublicKey = server_key_exchange.PublicKey
+	c.securityParams.Curve = types.Curves[server_key_exchange.CurveID].Curve
+
+	if !server_key_exchange.VerifySignature(c.securityParams, server_certificate.Certificates[0].Certificate.PublicKey) {
+		return fmt.Errorf("could not verify signature")
+	} else {
+		fmt.Println("Signature verified!")
 	}
 
 	// c.readServerResponse()
