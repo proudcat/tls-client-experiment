@@ -172,7 +172,7 @@ func (me ServerCertificate) GetChosenCertificate() *x509.Certificate {
 }
 
 func (me ServerCertificate) String() string {
-	out := "------------------------- Server Certificate ------------------------- \n"
+	out := "\n------------------------- Server Certificate ------------------------- \n"
 	out += fmt.Sprint(me.RecordHeader)
 	out += fmt.Sprint(me.HandshakeHeader)
 	out += fmt.Sprintf("Certificate Length.: %x\n", me.CertificateLength)

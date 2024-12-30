@@ -69,7 +69,7 @@ func (r *ServerCertificateStatus) FromBuffer(buf *common.Buffer) error {
 }
 
 func (certificateStatus ServerCertificateStatus) String() string {
-	out := "------------------------- Server Certificate Status ------------------------- \n"
+	out := "\n------------------------- Server Certificate Status ------------------------- \n"
 	out += fmt.Sprint(certificateStatus.RecordHeader)
 	out += fmt.Sprint(certificateStatus.HandshakeHeader)
 	out += fmt.Sprintf("StatusType....: %6x\n", certificateStatus.Params.StatusType)

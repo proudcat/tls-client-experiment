@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
 )
 
@@ -28,7 +29,7 @@ func NewClientHelloMessage(tls_version uint16, host string) ClientHelloMessage {
 	}
 
 	cipher_suite_len := uint16(len(cipher_suites) * 2)
-	client_random := common.Random32()
+	client_random := helpers.Random32()
 
 	msg := ClientHelloMessage{
 		Version:                  tls_version,
@@ -194,7 +195,7 @@ func (clientHello ClientHello) ToBytes() []byte {
 }
 
 func (clientHello ClientHello) String() string {
-	out := "------------------------- Client Hello ------------------------- \n"
+	out := "\n------------------------- Client Hello ------------------------- \n"
 	out += fmt.Sprintf("%4s", clientHello.RecordHeader)
 	out += fmt.Sprintf("%4s", clientHello.HandshakeHeader)
 	out += fmt.Sprintf("%8s", clientHello.Message)

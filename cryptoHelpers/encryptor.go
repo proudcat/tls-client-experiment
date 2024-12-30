@@ -45,7 +45,7 @@ func Encrypt(clientKey, clientIV, plaintext []byte, additionalData *coreUtils.Ad
 	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
 	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
 
-	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(plaintext)))
+	contentBytesLength := helpers.Uint16ToBytes(uint16(len(plaintext)))
 	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
 	// Seal encrypts and authenticates plaintext, authenticates the
@@ -80,7 +80,7 @@ func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData *coreUtils.A
 	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
 	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
 
-	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(rest) - AuthenticationTagSize))
+	contentBytesLength := helpers.Uint16ToBytes(uint16(len(rest) - AuthenticationTagSize))
 	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
 	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, additionalDataPayload)

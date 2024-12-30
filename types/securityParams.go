@@ -1,4 +1,4 @@
-package coreUtils
+package types
 
 import (
 	"crypto/elliptic"

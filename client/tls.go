@@ -8,8 +8,6 @@ import (
 	"os"
 
 	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/coreUtils"
-	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/message"
 	"github.com/proudcat/tls-client-experiment/types"
 )
@@ -42,7 +40,7 @@ type TLSClient struct {
 	clientSeqNumber byte
 	serverSeqNumber byte
 	cipherSuite     uint16
-	securityParams  coreUtils.SecurityParams
+	securityParams  types.SecurityParams
 }
 
 func NewTLSClient(host string, version uint16) *TLSClient {
@@ -110,7 +108,7 @@ func (c *TLSClient) Handshake() error {
 	client_hello_record := message.NewClientHello(c.version, c.host)
 	c.securityParams.ClientRandom = client_hello_record.Message.Random
 	client_hello_bytes := client_hello_record.ToBytes()
-	c.messages.Write(helpers.IgnoreRecordHeader(client_hello_bytes))
+	c.messages.Write(client_hello_bytes[5:])
 	fmt.Println(client_hello_record)
 	if err := c.Write(client_hello_bytes); err != nil {
 		return nil

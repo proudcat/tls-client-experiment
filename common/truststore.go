@@ -1,5 +1,21 @@
 package common
 
+import (
+	"crypto/x509"
+	"fmt"
+)
+
+func LoadTrustStore() (roots *x509.CertPool, err error) {
+	pem_bytes := []byte(TRUST_STORE)
+	roots = x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM(pem_bytes)
+	if !ok {
+		fmt.Println("failed to parse root certificate", err)
+		return nil, fmt.Errorf("failed to parse root certificate")
+	}
+	return
+}
+
 const TRUST_STORE = `
 -----BEGIN CERTIFICATE-----
 MIIGSzCCBDOgAwIBAgIRANm1Q3+vqTkPAAAAAFVlrVgwDQYJKoZIhvcNAQELBQAw

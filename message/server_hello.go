@@ -133,7 +133,7 @@ func (r ServerHello) SupportExtension(ext_type uint16) bool {
 }
 
 func (r ServerHello) String() string {
-	out := "------------------------- Server Hello ------------------------- \n"
+	out := "\n------------------------- Server Hello ------------------------- \n"
 	out += fmt.Sprint(r.RecordHeader)
 	out += fmt.Sprint(r.HandshakeHeader)
 	out += fmt.Sprint(r.Message)
