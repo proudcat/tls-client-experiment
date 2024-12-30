@@ -113,7 +113,7 @@ func KeysFromMasterSecret(masterSecret, clientRandom, serverRandom []byte, macLe
 	return
 }
 
-func GeneratePreMasterSecret(securityParams *types.SecurityParams) []byte {
+func GeneratePreMasterSecret(securityParams *types.SecurityParameters) []byte {
 	publicKeyX, publicKeyY := elliptic.Unmarshal(securityParams.Curve, securityParams.ServerKeyExchangePublicKey)
 	if publicKeyX == nil {
 		return nil
@@ -124,7 +124,7 @@ func GeneratePreMasterSecret(securityParams *types.SecurityParams) []byte {
 }
 
 // Returns the contents of the verify_data member of a client's Finished message.
-func MakeClientVerifyData(securityParams *types.SecurityParams, data []byte) []byte {
+func MakeClientVerifyData(securityParams *types.SecurityParameters, data []byte) []byte {
 	preMasterSecret := GeneratePreMasterSecret(securityParams)
 	securityParams.PreMasterSecret = preMasterSecret
 	if preMasterSecret == nil {
@@ -142,7 +142,7 @@ func MakeClientVerifyData(securityParams *types.SecurityParams, data []byte) []b
 	return out[:12]
 }
 
-func MakeServerVerifyData(securityParams *types.SecurityParams, data []byte) []byte {
+func MakeServerVerifyData(securityParams *types.SecurityParameters, data []byte) []byte {
 
 	out := make([]byte, finishedVerifyLength)
 	prfForVersionX()(out, securityParams.MasterSecret, serverFinishedLabel, data)
