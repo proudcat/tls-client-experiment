@@ -161,6 +161,29 @@ func (c *TLSClient) Handshake() error {
 		return fmt.Errorf("bad certificate chain")
 	}
 
+	/*********** receive server certificate status ***********/
+	support_status_request := server_hello.SupportExtension(types.EXT_TYPE_STATUS_REQUEST)
+	fmt.Println("support status request:", support_status_request)
+	if support_status_request {
+		if recv_buf.Size() > 0 {
+			//multiple message handshake
+			buf := common.NewBuffer()
+			buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
+			buf.Write(recv_buf.Drain())
+			recv_buf.Write(buf.PeekAllBytes())
+		} else {
+			recv_bytes, err := c.ReadRecord()
+			if err != nil {
+				return err
+			}
+			c.messages.Write(recv_bytes[5:])
+			recv_buf.Write(recv_bytes)
+		}
+		server_certificate_status := &message.ServerCertificateStatus{}
+		server_certificate_status.FromBuffer(recv_buf)
+		fmt.Println(server_certificate_status)
+	}
+
 	// c.readServerResponse()
 	return nil
 }
