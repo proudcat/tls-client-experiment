@@ -67,7 +67,7 @@ func (c *TCPClient) Read(n int) ([]byte, error) {
 			return nil, err
 		}
 		c.in_bound_buf.Write(chunk)
-		fmt.Printf("Read %d bytes from socket", len(chunk))
+		fmt.Printf("Read %d bytes from socket\n", len(chunk))
 	}
 
 	out, err := c.in_bound_buf.ReadBytes(n)

@@ -96,8 +96,10 @@ func (c *TLSClient) ReadRecord() ([]byte, error) {
 
 	record_type := header_bytes[0]
 	if record_type == types.RECORD_TYPE_ALERT {
-		fmt.Println("Alert:", types.AlertError(body_bytes[0]).Error(), chunk)
-		return nil, errors.New(types.AlertError(body_bytes[0]).Error())
+		alert := message.AlertError{}
+		alert.FromBytes(chunk)
+		// fmt.Println(alert)
+		return nil, errors.New(alert.String())
 	}
 
 	return chunk, nil
@@ -250,7 +252,7 @@ func (c *TLSClient) Handshake() error {
 	if verify_data == nil {
 		return fmt.Errorf("could not create VerifyData")
 	}
-	client_finished, err := message.MakeClientFinished(&c.securityParams, verify_data, c.version, c.clientSeqNumber)
+	client_finished, err := message.MakeClientFinished(&c.securityParams, verify_data, c.version, 0)
 	if err != nil {
 		return err
 	}
@@ -266,6 +268,53 @@ func (c *TLSClient) Handshake() error {
 	if err := c.Write(client_final_payload); err != nil {
 		return err
 	}
+
+	if recv_buf.Size() > 0 {
+		return fmt.Errorf("unexpected data recv_buf should be empty. size: %d", recv_buf.Size())
+	}
+
+	/*********** receive server session ticket ***********/
+	support_ticket := server_hello.SupportSessionTicket()
+	fmt.Println("support ticket:", support_ticket)
+	if support_ticket {
+		recv_bytes, err := c.ReadRecord()
+		if err != nil {
+			return err
+		}
+		server_session_ticket := message.ServerSessionTicket{}
+		recv_buf.Write(recv_bytes)
+		if err := server_session_ticket.FromBuffer(recv_buf); err != nil {
+			return err
+		}
+		c.messages.Write(recv_bytes[5:])
+		fmt.Println(server_session_ticket)
+	}
+
+	/*********** receive server change cipher spec ***********/
+	server_change_cipher_spec_bytes, err := c.ReadRecord()
+	if err != nil {
+		return err
+	}
+	recv_buf.Write(server_change_cipher_spec_bytes)
+	server_change_cipher_spec := message.ServerChangeCipherSpec{}
+	if err := server_change_cipher_spec.FromBuffer(recv_buf); err != nil {
+		return err
+	}
+	fmt.Println(server_change_cipher_spec)
+
+	/*********** receive server finished ***********/
+	server_finished_bytes, err := c.ReadRecord()
+	if err != nil {
+		return err
+	}
+	recv_buf.Write(server_finished_bytes)
+	server_finished := message.ServerFinished{}
+	if err := server_finished.FromBuffer(c.securityParams.ServerKey, c.securityParams.ServerIV, recv_buf); err != nil {
+		return err
+	}
+	c.serverSeqNumber += 1
+
+	fmt.Println("Server Finished:", server_finished)
 
 	return nil
 }

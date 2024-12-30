@@ -1,20 +1,44 @@
-package types
+package message
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
 
-type AlertError uint8
+	"github.com/proudcat/tls-client-experiment/types"
+)
 
-func (e AlertError) Error() string {
-	return alert(e).String()
+type AlertError struct {
+	RecordHeader types.RecordHeader
+	Level        byte
+	Detail       byte
+}
+
+func (e *AlertError) FromBytes(bytes []byte) {
+	e.RecordHeader.FromBytes(bytes[:types.RECORD_HEADER_SIZE])
+	e.Level = bytes[types.RECORD_HEADER_SIZE]
+	e.Detail = bytes[types.RECORD_HEADER_SIZE+1]
+}
+
+func (e AlertError) String() string {
+	out := "\n\n >>>>>>>>>>>>>>>> ALERT  <<<<<<<<<<<<<<<< \n"
+	out += fmt.Sprintf(" %s", e.RecordHeader)
+	out += fmt.Sprintf(" Level: %s(%d)\n", alertLevelText[e.Level], e.Level)
+	out += fmt.Sprintf(" Detail: %s\n", alert(e.Detail))
+	return out
 }
 
 type alert uint8
 
 const (
 	// alert level
-	ALERT_LEVEL_WARNING = 1
-	ALERT_LEVEL_ERROR   = 2
+	ALERT_LEVEL_WARNING byte = 1 // warning
+	ALERT_LEVEL_ERROR   byte = 2 // fatal
 )
+
+var alertLevelText = map[byte]string{
+	ALERT_LEVEL_WARNING: "Warning",
+	ALERT_LEVEL_ERROR:   "Fatal",
+}
 
 const (
 	ALERT_CLOSE_NOTIFY                    alert = 0
@@ -93,9 +117,9 @@ var alertText = map[alert]string{
 func (e alert) String() string {
 	s, ok := alertText[e]
 	if ok {
-		return "tls: " + s
+		return s
 	}
-	return "tls: alert(" + strconv.Itoa(int(e)) + ")"
+	return "alert(" + strconv.Itoa(int(e)) + ")"
 }
 
 func (e alert) Error() string {
