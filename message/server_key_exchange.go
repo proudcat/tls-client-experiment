@@ -92,7 +92,7 @@ func (r *ServerKeyExchange) FromBuffer(buf *common.Buffer) error {
 	return nil
 }
 
-func (serverKeyExchange ServerKeyExchange) VerifySignature(securityParams types.SecurityParameters, pubKey any) bool {
+func (serverKeyExchange ServerKeyExchange) VerifySignature(securityParams helpers.SecurityParameters, pubKey any) bool {
 	buf := common.NewBuffer()
 	buf.Write(securityParams.ClientRandom[:])
 	buf.Write(securityParams.ServerRandom[:])

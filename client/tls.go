@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/cryptoHelpers"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/message"
 	"github.com/proudcat/tls-client-experiment/types"
@@ -42,7 +41,7 @@ type TLSClient struct {
 	clientSeqNumber byte
 	serverSeqNumber byte
 	cipherSuite     uint16
-	securityParams  types.SecurityParameters
+	securityParams  helpers.SecurityParameters
 }
 
 func NewTLSClient(host string, version uint16) *TLSClient {
@@ -247,7 +246,7 @@ func (c *TLSClient) Handshake() error {
 
 	/*********** client finished ***********/
 	hash_messages := helpers.HashByteArray(types.CipherSuites[c.cipherSuite].HashingAlgorithm, c.messages.PeekAllBytes())
-	verify_data := cryptoHelpers.MakeClientVerifyData(&c.securityParams, hash_messages)
+	verify_data := helpers.MakeClientVerifyData(&c.securityParams, hash_messages)
 	if verify_data == nil {
 		return fmt.Errorf("could not create VerifyData")
 	}
@@ -269,30 +268,4 @@ func (c *TLSClient) Handshake() error {
 	}
 
 	return nil
-}
-
-func (client *TLSClient) Read() ([]byte, error) {
-	fmt.Println("Reading response")
-
-	header_bytes, err := client.tcp.Read(5)
-	if err != nil {
-		fmt.Println("Read from server failed:", err.Error())
-		// client.Close()
-		// os.Exit(1)
-		return nil, err
-	}
-
-	body_size := int(binary.BigEndian.Uint16(header_bytes[3:5]))
-
-	body_bytes, err := client.tcp.Read(body_size)
-
-	if err != nil {
-		fmt.Println("Read from server failed:", err.Error())
-		return nil, err
-	}
-
-	record := append(header_bytes, body_bytes...)
-
-	fmt.Printf("Message received from server: %x\n", record)
-	return record, nil
 }

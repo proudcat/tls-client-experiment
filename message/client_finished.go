@@ -19,7 +19,7 @@ type ClientFinished struct {
 	EncryptedContent []byte
 }
 
-func MakeClientFinished(params *types.SecurityParameters, verifyData []byte, tls_version uint16, seqNum byte) (*ClientFinished, error) {
+func MakeClientFinished(params *helpers.SecurityParameters, verifyData []byte, tls_version uint16, seqNum byte) (*ClientFinished, error) {
 	record := &ClientFinished{
 		RecordHeader: types.RecordHeader{
 			ContentType: types.RECORD_TYPE_HANDSHAKE,

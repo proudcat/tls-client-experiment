@@ -1,4 +1,4 @@
-package cryptoHelpers
+package helpers
 
 import (
 	"crypto"
@@ -7,9 +7,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"hash"
-
-	"github.com/proudcat/tls-client-experiment/helpers"
-	"github.com/proudcat/tls-client-experiment/types"
 )
 
 var masterSecretLabel = []byte("master secret")
@@ -113,7 +110,7 @@ func KeysFromMasterSecret(masterSecret, clientRandom, serverRandom []byte, macLe
 	return
 }
 
-func GeneratePreMasterSecret(securityParams *types.SecurityParameters) []byte {
+func GeneratePreMasterSecret(securityParams *SecurityParameters) []byte {
 	publicKeyX, publicKeyY := elliptic.Unmarshal(securityParams.Curve, securityParams.ServerKeyExchangePublicKey)
 	if publicKeyX == nil {
 		return nil
@@ -124,7 +121,7 @@ func GeneratePreMasterSecret(securityParams *types.SecurityParameters) []byte {
 }
 
 // Returns the contents of the verify_data member of a client's Finished message.
-func MakeClientVerifyData(securityParams *types.SecurityParameters, data []byte) []byte {
+func MakeClientVerifyData(securityParams *SecurityParameters, data []byte) []byte {
 	preMasterSecret := GeneratePreMasterSecret(securityParams)
 	securityParams.PreMasterSecret = preMasterSecret
 	if preMasterSecret == nil {
@@ -142,7 +139,7 @@ func MakeClientVerifyData(securityParams *types.SecurityParameters, data []byte)
 	return out[:12]
 }
 
-func MakeServerVerifyData(securityParams *types.SecurityParameters, data []byte) []byte {
+func MakeServerVerifyData(securityParams *SecurityParameters, data []byte) []byte {
 
 	out := make([]byte, finishedVerifyLength)
 	prfForVersionX()(out, securityParams.MasterSecret, serverFinishedLabel, data)
@@ -151,7 +148,7 @@ func MakeServerVerifyData(securityParams *types.SecurityParameters, data []byte)
 
 func MakeMac(fragment, macKey, seqNum []byte, recordType int, tlsVersion [2]byte) []byte {
 
-	fragment_len := helpers.Uint16ToBytes(uint16(len(fragment)))
+	fragment_len := Uint16ToBytes(uint16(len(fragment)))
 
 	buf := []byte{}
 

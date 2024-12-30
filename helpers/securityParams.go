@@ -1,4 +1,4 @@
-package types
+package helpers
 
 import (
 	"crypto/elliptic"
@@ -18,13 +18,4 @@ type SecurityParameters struct {
 	ServerKey                   []byte
 	ClientIV                    []byte
 	ServerIV                    []byte
-}
-
-// A SessionState is a resumable session.
-type SessionState struct {
-	PMS      []byte
-	MS       []byte
-	WriteKey []byte
-	WriteIV  []byte
-	MacKey   []byte
 }
