@@ -69,6 +69,9 @@ func TestBuffer_WriteUint16(t *testing.T) {
 	}
 	expected := make([]byte, 2)
 	binary.BigEndian.PutUint16(expected, 65535)
+	if !slices.Equal(b.bytes, expected) {
+		t.Errorf("expected bytes %v, got %v", expected, b.bytes)
+	}
 	for i, v := range expected {
 		if b.bytes[i] != v {
 			t.Errorf("expected byte %d, got %d", v, b.bytes[i])

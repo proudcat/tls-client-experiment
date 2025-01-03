@@ -51,6 +51,6 @@ func (h HandshakeHeader) Size() uint32 {
 func (h HandshakeHeader) String() string {
 	out := "Handshake Header\n"
 	out += fmt.Sprintf("    Type............: %#02x\n", h.Type)
-	out += fmt.Sprintf("    Length..........: %#06x\n", h.Length)
+	out += fmt.Sprintf("    Length..........: %#s\n", h.Length)
 	return out
 }

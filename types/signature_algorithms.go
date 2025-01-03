@@ -2,7 +2,6 @@ package types
 
 import (
 	"crypto"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/tls"
 	"hash"
@@ -45,12 +44,12 @@ var SignatureAlgorithms = map[uint16]SignatureAlgorithmInfo{
 	//"Signature Algorithm: SHA224 RSA (0x0301)":             {0x03, 0x01},
 	//"Signature Algorithm: SHA224 DSA (0x0302)":             {0x03, 0x02},
 	//"Signature Algorithm: SHA224 ECDSA (0x0303)":           {0x03, 0x03},
-	rsa_pkcs1_sha1: {
-		Code:             rsa_pkcs1_sha1, //[2]byte{0x02, 0x01},
-		HashingAlgorithm: sha1.New,
-		HashCode:         crypto.SHA1,
-		Type:             tls.PKCS1WithSHA1,
-	},
+	// rsa_pkcs1_sha1: {
+	// 	Code:             rsa_pkcs1_sha1, //[2]byte{0x02, 0x01},
+	// 	HashingAlgorithm: sha1.New,
+	// 	HashCode:         crypto.SHA1,
+	// 	Type:             tls.PKCS1WithSHA1,
+	// },
 	//"Signature Algorithm: SHA1 DSA (0x0202)":               {0x02, 0x02},
 	//"Signature Algorithm: ecdsa_sha1 (0x0203)":             {0x02, 0x03},
 	//"rsa_pss_rsae_sha256":                                  {0x08, 0x04},

@@ -41,7 +41,7 @@ func NewClientHelloMessage(tls_version uint16, host string) ClientHelloMessage {
 		SessionIdLength:          0x00,
 	}
 
-	msg.AddExtension(types.EXT_TYPE_GREASE_BEGIN, []byte{0x00, 0x00})
+	msg.AddExtension(types.EXT_TYPE_GREASE_BEGIN, nil)
 
 	server_name := []byte(host)
 	server_name_len := uint16(len(server_name))
@@ -71,9 +71,15 @@ func NewClientHelloMessage(tls_version uint16, host string) ClientHelloMessage {
 	msg.AddExtension(types.EXT_TYPE_SESSION_TICKET, nil)
 	msg.AddExtension(types.EXT_TYPE_STATUS_REQUEST, []byte{0x01, 0x00, 0x00, 0x00, 0x00})
 	msg.AddExtension(types.EXT_TYPE_SIGNATURE_ALGORITHMS, []byte{
-		0x00, 0x04, // List Length TODO more signatures
-		0x04, 0x01, // Signature Algorithm: rsa_pkcs1_sha256 (0x0401)
-		0x04, 0x03, // Signature Algorithm: ecdsa_secp256r1_sha256 (0x0403)
+		0x00, 0x04, // List Length  TODO: unlock all
+		0x04, 0x03, // ecdsa_secp256r1_sha256 (0x0403)
+		// 0x08, 0x04, // rsa_pss_rsae_sha256 (0x0804)
+		0x04, 0x01, // rsa_pkcs1_sha256 (0x0401)
+		// 0x05, 0x03, // ecdsa_secp384r1_sha256 (0x0503)
+		// 0x08, 0x05, // rsa_pss_rsae_sha384 (0x0805)
+		// 0x05, 0x01, // rsa_pkcs1_sha384 (0x0501)
+		// 0x08, 0x06, // rsa_pss_rsae_sha512 (0x0806)
+		// 0x06, 0x01, // rsa_pkcs1_sha512 (0x0601)
 	})
 
 	msg.AddExtension(types.EXT_TYPE_SIGNED_CERTIFICATE_TIMESTAMP, nil)

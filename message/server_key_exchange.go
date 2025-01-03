@@ -13,8 +13,8 @@ import (
 )
 
 type Signature struct {
-	Algorithm uint16 //[2]byte
-	Length    uint16 //[2]byte
+	Algorithm uint16
+	Length    uint16
 	Content   []byte
 }
 
@@ -30,7 +30,7 @@ type ServerKeyExchange struct {
 	RecordHeader    types.RecordHeader
 	HandshakeHeader types.HandshakeHeader
 	Curve           byte
-	CurveID         uint16 //[2]byte
+	CurveID         uint16
 	PublicKeyLength byte
 	PublicKey       []byte
 	Signature       Signature
