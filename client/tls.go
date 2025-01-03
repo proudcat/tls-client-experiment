@@ -11,6 +11,7 @@ import (
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/message"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 /*
@@ -37,7 +38,7 @@ type TLSClient struct {
 	version         uint16
 	host            string
 	tcp             *TCPClient
-	messages        *common.Buffer
+	messages        zkp.Buffer
 	clientSeqNumber byte
 	serverSeqNumber byte
 	cipherSuite     uint16
@@ -55,7 +56,7 @@ func NewTLSClient(host string, version uint16) *TLSClient {
 		version:         version,
 		host:            host,
 		tcp:             tcp,
-		messages:        common.NewBuffer(),
+		messages:        zkp.Buffer{},
 		clientSeqNumber: 0,
 		serverSeqNumber: 0,
 	}
@@ -84,7 +85,7 @@ func (c *TLSClient) ReadRecord() ([]byte, error) {
 		return nil, err
 	}
 
-	body_size := int(binary.BigEndian.Uint16(header_bytes[3:5]))
+	body_size := uint32(binary.BigEndian.Uint16(header_bytes[3:5]))
 
 	body_bytes, err := c.tcp.Read(body_size)
 
@@ -123,7 +124,7 @@ func (c *TLSClient) Handshake() error {
 		return err
 	}
 
-	recv_buf := common.NewBuffer()
+	recv_buf := &zkp.Buffer{}
 	recv_buf.Write(server_hello_bytes)
 	server_hello := message.ServerHello{}
 	server_hello.FromBuffer(recv_buf)
@@ -137,10 +138,10 @@ func (c *TLSClient) Handshake() error {
 		// multiple message handshake which means there are multiple handshakes in on record.
 		// |record Header| Server Hello | Certificate |...|
 		// we should prepend record header for Certificate Handshake
-		buf := common.NewBuffer()
+		buf := zkp.Buffer{}
 		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00}) // prepend record header
-		buf.Write(recv_buf.Drain())
-		recv_buf.Write(buf.PeekAllBytes())
+		buf.Write(recv_buf.Bytes())
+		recv_buf.Write(buf.Bytes())
 	} else {
 		server_certificate_bytes, err := c.ReadRecord()
 		if err != nil {
@@ -161,6 +162,7 @@ func (c *TLSClient) Handshake() error {
 	if valid := server_certificate.Verify(roots, c.host); !valid {
 		return fmt.Errorf("bad certificate chain")
 	}
+	recv_buf.Shrink()
 
 	/*********** receive server certificate status ***********/
 	support_status_request := server_hello.SupportExtension(types.EXT_TYPE_STATUS_REQUEST)
@@ -168,10 +170,10 @@ func (c *TLSClient) Handshake() error {
 	if support_status_request {
 		if recv_buf.Size() > 0 {
 			//multiple message handshake
-			buf := common.NewBuffer()
+			buf := zkp.Buffer{}
 			buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
-			buf.Write(recv_buf.Drain())
-			recv_buf.Write(buf.PeekAllBytes())
+			buf.Write(recv_buf.Bytes())
+			recv_buf.Write(buf.Bytes())
 		} else {
 			recv_bytes, err := c.ReadRecord()
 			if err != nil {
@@ -184,14 +186,15 @@ func (c *TLSClient) Handshake() error {
 		server_certificate_status.FromBuffer(recv_buf)
 		fmt.Println(server_certificate_status)
 	}
+	recv_buf.Shrink()
 
 	/*********** receive server_key_exchange ***********/
 	if recv_buf.Size() > 0 {
 		//multiple message handshake
-		buf := common.NewBuffer()
+		buf := zkp.Buffer{}
 		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
-		buf.Write(recv_buf.Drain())
-		recv_buf.Write(buf.PeekAllBytes())
+		buf.Write(recv_buf.Bytes())
+		recv_buf.Write(buf.Bytes())
 	} else {
 		recv_bytes, err := c.ReadRecord()
 		if err != nil {
@@ -212,15 +215,16 @@ func (c *TLSClient) Handshake() error {
 	} else {
 		fmt.Println("Signature verified!")
 	}
+	recv_buf.Shrink()
 
 	/*********** receive server hello done ***********/
 	server_hello_done := message.ServerHelloDone{}
 	if recv_buf.Size() > 0 {
 		//multiple message handshake
-		buf := common.NewBuffer()
+		buf := zkp.Buffer{}
 		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
-		buf.Write(recv_buf.Drain())
-		recv_buf.Write(buf.PeekAllBytes())
+		buf.Write(recv_buf.Bytes())
+		recv_buf.Write(buf.Bytes())
 	} else {
 		recv_bytes, err := c.ReadRecord()
 		if err != nil {
@@ -235,6 +239,7 @@ func (c *TLSClient) Handshake() error {
 	if recv_buf.Size() > 0 {
 		return fmt.Errorf("unexpected data recv_buf should be empty. size: %d", recv_buf.Size())
 	}
+	recv_buf.Shrink()
 
 	/*********** client key exchange ***********/
 	client_key_exchange := message.NewClientKeyExchange(c.version, c.securityParams.Curve)
@@ -247,7 +252,7 @@ func (c *TLSClient) Handshake() error {
 	fmt.Println(client_change_cipher_spec)
 
 	/*********** client finished ***********/
-	hash_messages := helpers.HashByteArray(types.CipherSuites[c.cipherSuite].HashingAlgorithm, c.messages.PeekAllBytes())
+	hash_messages := helpers.HashByteArray(types.CipherSuites[c.cipherSuite].HashingAlgorithm, c.messages.Bytes())
 	verify_data := helpers.MakeClientVerifyData(&c.securityParams, hash_messages)
 	if verify_data == nil {
 		return fmt.Errorf("could not create VerifyData")
@@ -289,6 +294,7 @@ func (c *TLSClient) Handshake() error {
 		c.messages.Write(recv_bytes[5:])
 		fmt.Println(server_session_ticket)
 	}
+	recv_buf.Shrink()
 
 	/*********** receive server change cipher spec ***********/
 	server_change_cipher_spec_bytes, err := c.ReadRecord()
@@ -300,6 +306,7 @@ func (c *TLSClient) Handshake() error {
 	if err := server_change_cipher_spec.FromBuffer(recv_buf); err != nil {
 		return err
 	}
+	recv_buf.Shrink()
 	fmt.Println(server_change_cipher_spec)
 
 	/*********** receive server finished ***********/

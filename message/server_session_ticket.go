@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ServerSessionTicket struct {
@@ -15,7 +15,7 @@ type ServerSessionTicket struct {
 	Message         []byte
 }
 
-func (r *ServerSessionTicket) FromBuffer(buf *common.Buffer) error {
+func (r *ServerSessionTicket) FromBuffer(buf *zkp.Buffer) error {
 	fmt.Println("Parsing Server Session Ticket")
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {
@@ -30,8 +30,6 @@ func (r *ServerSessionTicket) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid record type %d", r.RecordHeader.ContentType)
 	}
 
-	buf.AddKey("handshake_start")
-
 	if err := r.HandshakeHeader.FromBytes(buf.Next(types.HANDSHAKE_HEADER_SIZE)); err != nil {
 		return err
 	}
@@ -40,25 +38,18 @@ func (r *ServerSessionTicket) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid handshake type %d", r.HandshakeHeader.Type)
 	}
 
-	buf.AddKey("payload_start")
+	offset_payload_start := buf.Offset()
 
 	r.LeftTimeHint = buf.Next(4)
-	ticketLength, err := buf.ReadUint16()
+	ticketLength := buf.NextUint16()
 
-	if err != nil {
-		return err
-	}
-
-	ticket, err := buf.ReadBytes(int(ticketLength))
-	if err != nil {
-		return err
-	}
+	ticket := buf.Next(uint32(ticketLength))
 
 	r.Payload = ticket
 
-	buf.AddKey("end")
+	offset_end := buf.Offset()
 
-	if int(r.HandshakeHeader.Length) != buf.ClipSize("payload_start", "end") {
+	if r.HandshakeHeader.Length.Uint32() != offset_end-offset_payload_start {
 		return fmt.Errorf("invalid handshake size")
 	}
 
@@ -67,9 +58,8 @@ func (r *ServerSessionTicket) FromBuffer(buf *common.Buffer) error {
 	}
 
 	//multiple handshake message
-	// r.RecordHeader.Length = uint16(buf.ClipSize("handshake_start", "end"))
+	// r.RecordHeader.Length = uint16(offset_end - offset_handshake_start)
 
-	buf.ClearKeys()
 	return nil
 }
 

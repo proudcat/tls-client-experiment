@@ -5,13 +5,13 @@ import (
 	"io"
 	"net"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type TCPClient struct {
 	io.Closer
 	conn         *net.TCPConn
-	in_bound_buf *common.Buffer
+	in_bound_buf zkp.Buffer
 }
 
 func DialTCP(endpoint string) (*TCPClient, error) {
@@ -32,7 +32,7 @@ func DialTCP(endpoint string) (*TCPClient, error) {
 	}
 
 	client := &TCPClient{
-		in_bound_buf: common.NewBuffer(),
+		in_bound_buf: zkp.Buffer{},
 		conn:         conn,
 	}
 	return client, err
@@ -42,7 +42,7 @@ func (c TCPClient) Close() error {
 	return c.conn.Close()
 }
 
-func (c TCPClient) Size() int {
+func (c TCPClient) Size() uint32 {
 	return c.in_bound_buf.Size()
 }
 
@@ -55,7 +55,7 @@ func (c TCPClient) Write(data []byte) error {
 	return err
 }
 
-func (c *TCPClient) Read(n int) ([]byte, error) {
+func (c *TCPClient) Read(n uint32) ([]byte, error) {
 
 	fmt.Printf("Trying to read %d bytes \n", n)
 
@@ -70,11 +70,7 @@ func (c *TCPClient) Read(n int) ([]byte, error) {
 		fmt.Printf("Read %d bytes from socket\n", len(chunk))
 	}
 
-	out, err := c.in_bound_buf.ReadBytes(n)
-
-	if err != nil {
-		return nil, err
-	}
+	out := c.in_bound_buf.Next(n)
 
 	return out, nil
 }

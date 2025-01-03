@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 const (
@@ -40,10 +40,10 @@ func (h *ExtensionHeader) FromBytes(bytes []byte) error {
 }
 
 func (h ExtensionHeader) ToBytes() []byte {
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.WriteUint16(h.Type)
 	buf.WriteUint16(h.Length)
-	return buf.Drain()
+	return buf.Bytes()
 }
 
 type Extension struct {

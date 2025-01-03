@@ -3,9 +3,9 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ServerFinished struct {
@@ -14,7 +14,7 @@ type ServerFinished struct {
 	VerifyData      []byte
 }
 
-func (r *ServerFinished) FromBuffer(serverKey []byte, serverIV []byte, buf *common.Buffer) error {
+func (r *ServerFinished) FromBuffer(serverKey []byte, serverIV []byte, buf *zkp.Buffer) error {
 	fmt.Println("Parsing Server Finished")
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {
@@ -29,7 +29,7 @@ func (r *ServerFinished) FromBuffer(serverKey []byte, serverIV []byte, buf *comm
 		return fmt.Errorf("invalid record type %d", r.RecordHeader.ContentType)
 	}
 
-	plaintext, err := helpers.Decrypt(serverKey, serverIV, buf.PeekAllBytes(), 0, r.RecordHeader.ContentType, helpers.Uint16ToBytes(r.RecordHeader.Version))
+	plaintext, err := helpers.Decrypt(serverKey, serverIV, buf.Bytes(), 0, r.RecordHeader.ContentType, helpers.Uint16ToBytes(r.RecordHeader.Version))
 	if err != nil {
 		return err
 	}

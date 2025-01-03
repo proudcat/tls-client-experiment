@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ServerCertificateStatusParams struct {
@@ -19,7 +19,7 @@ type ServerCertificateStatus struct {
 	Params          ServerCertificateStatusParams
 }
 
-func (r *ServerCertificateStatus) FromBuffer(buf *common.Buffer) error {
+func (r *ServerCertificateStatus) FromBuffer(buf *zkp.Buffer) error {
 
 	fmt.Println("Parsing Server Certificate Status")
 
@@ -37,7 +37,7 @@ func (r *ServerCertificateStatus) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid record type %d", r.RecordHeader.ContentType)
 	}
 
-	buf.AddKey("handshake_start")
+	offset_handshake_start := buf.Offset()
 
 	if err := r.HandshakeHeader.FromBytes(buf.Next(types.HANDSHAKE_HEADER_SIZE)); err != nil {
 		return err
@@ -47,24 +47,24 @@ func (r *ServerCertificateStatus) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid handshake type %d", r.HandshakeHeader.Type)
 	}
 
-	buf.AddKey("payload_start")
+	offset_payload_start := buf.Offset()
 
 	r.Params.StatusType = buf.Next(1)
 
 	payload_len := binary.BigEndian.Uint32(append([]byte{0}, buf.Next(3)...))
 
-	r.Params.Payload = buf.Next(int(payload_len))
+	r.Params.Payload = buf.Next(payload_len)
 
-	buf.AddKey("end")
+	offset_end := buf.Offset()
 
-	if int(r.HandshakeHeader.Length) != buf.ClipSize("payload_start", "end") {
+	if r.HandshakeHeader.Length.Uint32() != offset_end-offset_payload_start {
 		return fmt.Errorf("invalid handshake size")
 	}
 
 	//fix record header length  if multiple messages
-	r.RecordHeader.Length = uint16(buf.ClipSize("handshake_start", "end"))
+	r.RecordHeader.Length = uint16(offset_end - offset_handshake_start)
 
-	buf.ClearKeys()
+	// buf.ClearKeys()
 	return nil
 }
 

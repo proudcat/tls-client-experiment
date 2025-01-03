@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 const (
@@ -39,7 +39,7 @@ func Encrypt(clientKey, clientIV, plaintext []byte, seq byte, record_type byte, 
 	}
 	nonceIV := append(clientIV, nonce...)
 
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.WriteUint8(seq)
 	buf.WriteUint8(record_type)
 	buf.Write(tls_version[:])
@@ -54,7 +54,7 @@ func Encrypt(clientKey, clientIV, plaintext []byte, seq byte, record_type byte, 
 
 	// Seal encrypts and authenticates plaintext, authenticates the
 	// additional data (aad) and returns ciphertext together with authentication tag.
-	ciphertext := gcmAuthenticator.Seal(nil, nonceIV, plaintext, buf.Drain())
+	ciphertext := gcmAuthenticator.Seal(nil, nonceIV, plaintext, buf.Bytes())
 	if ciphertext == nil {
 		fmt.Println("AEAD.Seal: Failed to encrypt message")
 		return nil, errors.New("math: Failed to encrypt message")
@@ -87,13 +87,13 @@ func Decrypt(serverKey, serverIV, ciphertext []byte, seq byte, record_type byte,
 	// contentBytesLength := Uint16ToBytes(uint16(len(rest) - AuthenticationTagSize))
 	// additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.WriteUint8(seq)
 	buf.WriteUint8(record_type)
 	buf.Write(tls_version[:])
 	buf.WriteUint16(uint16(len(rest) - AuthenticationTagSize))
 
-	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, buf.Drain())
+	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, buf.Bytes())
 	if err != nil {
 		fmt.Println("Failed to decrypt message: ", err.Error())
 		return nil, err

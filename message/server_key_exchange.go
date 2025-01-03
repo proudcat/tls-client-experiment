@@ -7,9 +7,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type Signature struct {
@@ -36,7 +36,7 @@ type ServerKeyExchange struct {
 	Signature       Signature
 }
 
-func (r *ServerKeyExchange) FromBuffer(buf *common.Buffer) error {
+func (r *ServerKeyExchange) FromBuffer(buf *zkp.Buffer) error {
 
 	fmt.Println("Parsing Server Key Exchange")
 
@@ -52,7 +52,7 @@ func (r *ServerKeyExchange) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid record type %d", r.RecordHeader.ContentType)
 	}
 
-	buf.AddKey("handshake_start")
+	offset_handshake_start := buf.Offset()
 
 	if err := r.HandshakeHeader.FromBytes(buf.Next(types.HANDSHAKE_HEADER_SIZE)); err != nil {
 		return err
@@ -62,7 +62,7 @@ func (r *ServerKeyExchange) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid handshake type %d", r.HandshakeHeader.Type)
 	}
 
-	buf.AddKey("payload_start")
+	offset_payload_start := buf.Offset()
 
 	r.Curve = buf.Next(1)[0]
 
@@ -70,30 +70,29 @@ func (r *ServerKeyExchange) FromBuffer(buf *common.Buffer) error {
 
 	r.PublicKeyLength = buf.Next(1)[0]
 
-	r.PublicKey = buf.Next(int(r.PublicKeyLength))
+	r.PublicKey = buf.Next(uint32(r.PublicKeyLength))
 
 	signature := Signature{}
 	signature.Algorithm = binary.BigEndian.Uint16(buf.Next(2))
 	signature.Length = binary.BigEndian.Uint16(buf.Next(2))
-	signature.Content = buf.Next(int(signature.Length))
+	signature.Content = buf.Next(uint32(signature.Length))
 
-	buf.AddKey("end")
+	offset_end := buf.Offset()
 
-	if int(r.HandshakeHeader.Length) != buf.ClipSize("payload_start", "end") {
+	if r.HandshakeHeader.Length.Uint32() != offset_end-offset_payload_start {
 		return fmt.Errorf("invalid handshake size")
 	}
 
 	//we need fix record length when multiple handshake message
-	r.RecordHeader.Length = uint16(buf.ClipSize("handshake_start", "end"))
+	r.RecordHeader.Length = uint16(offset_end - offset_handshake_start)
 
 	r.Signature = signature
 
-	buf.ClearKeys()
 	return nil
 }
 
 func (serverKeyExchange ServerKeyExchange) VerifySignature(securityParams helpers.SecurityParameters, pubKey any) bool {
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.Write(securityParams.ClientRandom[:])
 	buf.Write(securityParams.ServerRandom[:])
 	buf.WriteUint8(serverKeyExchange.Curve)
@@ -106,7 +105,7 @@ func (serverKeyExchange ServerKeyExchange) VerifySignature(securityParams helper
 		panic(fmt.Sprintf("Unknown signature algorithm %#04x", serverKeyExchange.Signature.Algorithm))
 	}
 
-	hashed := helpers.HashByteArray(algorithm.HashingAlgorithm, buf.Drain())
+	hashed := helpers.HashByteArray(algorithm.HashingAlgorithm, buf.Bytes())
 
 	switch algorithm.Type {
 	case tls.ECDSAWithP256AndSHA256:

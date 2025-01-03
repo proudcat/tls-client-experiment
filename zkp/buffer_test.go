@@ -1,4 +1,4 @@
-package types
+package zkp
 
 import (
 	"encoding/binary"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestBuffer_Size(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	if b.Size() != 0 {
 		t.Errorf("expected size 0, got %d", b.Size())
 	}
@@ -15,10 +15,15 @@ func TestBuffer_Size(t *testing.T) {
 	if b.Size() != 3 {
 		t.Errorf("expected size 3, got %d", b.Size())
 	}
+
+	b.Next(2)
+	if b.Size() != 1 {
+		t.Errorf("expected size 1, got %d", b.Size())
+	}
 }
 
 func TestBuffer_Reset(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.Write([]byte{1, 2, 3})
 	b.Reset()
 	if b.Size() != 0 {
@@ -30,13 +35,13 @@ func TestBuffer_Reset(t *testing.T) {
 }
 
 func TestBuffer_Write(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	data := []byte{1, 2, 3}
 	b.Write(data)
-	if b.Size() != len(data) {
+	if b.Size() != uint32(len(data)) {
 		t.Errorf("expected size %d, got %d", len(data), b.Size())
 	}
-	if b.offset != len(data) {
+	if b.offset != uint32(len(data)) {
 		t.Errorf("expected offset %d, got %d", len(data), b.offset)
 	}
 
@@ -46,7 +51,7 @@ func TestBuffer_Write(t *testing.T) {
 }
 
 func TestBuffer_WriteUint8(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.WriteUint8(255)
 	if b.Size() != 1 {
 		t.Errorf("expected size 1, got %d", b.Size())
@@ -57,7 +62,7 @@ func TestBuffer_WriteUint8(t *testing.T) {
 }
 
 func TestBuffer_WriteUint16(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.WriteUint16(65535)
 	if b.Size() != 2 {
 		t.Errorf("expected size 2, got %d", b.Size())
@@ -72,9 +77,9 @@ func TestBuffer_WriteUint16(t *testing.T) {
 }
 
 func TestBuffer_WriteUint24(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	data := []byte{254, 255, 255}
-	var want uint24
+	var want Uint24
 	want.FromBytes(data)
 	b.WriteUint24(want)
 	if b.Size() != 3 {
@@ -89,7 +94,7 @@ func TestBuffer_WriteUint24(t *testing.T) {
 }
 
 func TestBuffer_WriteUint32(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.WriteUint32(4294967295)
 	if b.Size() != 4 {
 		t.Errorf("expected size 4, got %d", b.Size())
@@ -104,7 +109,7 @@ func TestBuffer_WriteUint32(t *testing.T) {
 }
 
 func TestBuffer_Next(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	data := []byte{1, 2, 3, 4}
 	b.Write(data)
 	chunk := b.Next(2)
@@ -120,7 +125,7 @@ func TestBuffer_Next(t *testing.T) {
 }
 
 func TestBuffer_NextUint8(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.Write([]byte{255})
 	val := b.NextUint8()
 	if val != 255 {
@@ -129,7 +134,7 @@ func TestBuffer_NextUint8(t *testing.T) {
 }
 
 func TestBuffer_NextUint16(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.WriteUint16(65535)
 	val := b.NextUint16()
 	if val != 65535 {
@@ -138,7 +143,7 @@ func TestBuffer_NextUint16(t *testing.T) {
 }
 
 func TestBuffer_NextUint32(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.WriteUint32(4294967295)
 	val := b.NextUint32()
 	if val != 4294967295 {
@@ -147,7 +152,7 @@ func TestBuffer_NextUint32(t *testing.T) {
 }
 
 func TestBuffer(t *testing.T) {
-	b := ByteBuffer{}
+	b := Buffer{}
 	b.Write([]byte{1, 2, 3})
 	b.WriteUint16(65535)
 
@@ -177,4 +182,48 @@ func TestBuffer(t *testing.T) {
 		t.Errorf("expected 4294967295, got %d", u32)
 	}
 
+}
+func TestBuffer_Bytes(t *testing.T) {
+	b := Buffer{}
+	data := []byte{1, 2, 3, 4}
+	b.Write(data)
+	b.Next(2)
+	bytes := b.Bytes()
+	if !slices.Equal(bytes, []byte{3, 4}) {
+		t.Errorf("expected bytes [3 4], got %v", bytes)
+	}
+}
+
+func TestBuffer_Drain(t *testing.T) {
+	b := Buffer{}
+	data := []byte{1, 2, 3, 4}
+	b.Write(data)
+	b.Next(2)
+	drained := b.Drain()
+	if !slices.Equal(drained, []byte{3, 4}) {
+		t.Errorf("expected drained bytes [3 4], got %v", drained)
+	}
+	if b.Size() != 2 {
+		t.Errorf("expected size 2 after drain, got %d", b.Size())
+	}
+	if b.offset != 0 {
+		t.Errorf("expected offset 0 after drain, got %d", b.offset)
+	}
+}
+
+func TestBuffer_Shrink(t *testing.T) {
+	b := Buffer{}
+	data := []byte{1, 2, 3, 4, 5}
+	b.Write(data)
+	b.Next(2)
+	b.Shrink()
+	if b.Size() != 3 {
+		t.Errorf("expected size 2 after shrink, got %d", b.Size())
+	}
+	if b.offset != 0 {
+		t.Errorf("expected offset 0 after shrink, got %d", b.offset)
+	}
+	if !slices.Equal(b.Bytes(), []byte{3, 4, 5}) {
+		t.Errorf("expected bytes [3 4] after shrink, got %v", b.Bytes())
+	}
 }

@@ -3,9 +3,9 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ClientHelloMessage struct {
@@ -46,12 +46,12 @@ func NewClientHelloMessage(tls_version uint16, host string) ClientHelloMessage {
 	server_name := []byte(host)
 	server_name_len := uint16(len(server_name))
 
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.WriteUint16(server_name_len + 3) // server name list length
 	buf.WriteUint8(0x00)                 // name type: host_name
 	buf.WriteUint16(server_name_len)     // name length
 	buf.Write(server_name)
-	ext_server_name := buf.Drain()
+	ext_server_name := buf.Bytes()
 
 	msg.AddExtension(types.EXT_TYPE_SERVER_NAME, ext_server_name)
 	msg.AddExtension(types.EXT_TYPE_EXTENDED_MASTER_SECRET, nil)
@@ -101,28 +101,28 @@ func (msg *ClientHelloMessage) AddExtension(ext_type uint16, data []byte) {
 	msg.Extensions = append(msg.Extensions, ext)
 }
 
-func (msg ClientHelloMessage) Size() int {
-	var size = 0
+func (msg ClientHelloMessage) Size() uint32 {
+	var size uint32 = 0
 
-	size += 2                                 // version
-	size += len(msg.Random)                   // random
-	size += 1                                 // session id length
-	size += int(msg.SessionIdLength)          // session id
-	size += 2                                 // cipher suite length
-	size += int(msg.CipherSuiteLength)        //cipher suites
-	size += 1                                 // compression methods length
-	size += int(msg.CompressionMethodsLength) // compression methods
-	size += 2                                 // extensions length
+	size += 2                                    // version
+	size += uint32(len(msg.Random))              // random
+	size += 1                                    // session id length
+	size += uint32(msg.SessionIdLength)          // session id
+	size += 2                                    // cipher suite length
+	size += uint32(msg.CipherSuiteLength)        //cipher suites
+	size += 1                                    // compression methods length
+	size += uint32(msg.CompressionMethodsLength) // compression methods
+	size += 2                                    // extensions length
 
 	for _, ext := range msg.Extensions {
-		size += int(ext.Size()) //extensions length
+		size += uint32(ext.Size()) //extensions length
 	}
 
 	return size
 }
 
 func (msg ClientHelloMessage) ToBytes() []byte {
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.WriteUint16(msg.Version)
 	buf.Write(msg.Random[:])
 	buf.WriteUint8(msg.SessionIdLength)
@@ -138,7 +138,7 @@ func (msg ClientHelloMessage) ToBytes() []byte {
 		buf.Write(ext.ToBytes())
 	}
 
-	return buf.Drain()
+	return buf.Bytes()
 }
 
 func (msg ClientHelloMessage) String() string {
@@ -179,7 +179,7 @@ func NewClientHello(tls_version uint16, host string) ClientHello {
 		},
 		HandshakeHeader: types.HandshakeHeader{
 			Type:   types.HS_TYPE_CLIENT_HELLO,
-			Length: uint32(msg_size),
+			Length: zkp.NewUint24(msg_size),
 		},
 		Message: msg,
 	}
@@ -187,11 +187,11 @@ func NewClientHello(tls_version uint16, host string) ClientHello {
 }
 
 func (clientHello ClientHello) ToBytes() []byte {
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.Write(clientHello.RecordHeader.ToBytes())
 	buf.Write(clientHello.HandshakeHeader.ToBytes())
 	buf.Write(clientHello.Message.ToBytes())
-	return buf.Drain()
+	return buf.Bytes()
 }
 
 func (clientHello ClientHello) String() string {

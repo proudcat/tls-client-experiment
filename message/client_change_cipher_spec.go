@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ClientChangeCipherSpec struct {
@@ -26,10 +26,10 @@ func NewClientChangeCipherSpec(tls_version uint16) *ClientChangeCipherSpec {
 }
 
 func (r ClientChangeCipherSpec) ToBytes() []byte {
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.Write(r.RecordHeader.ToBytes())
 	buf.WriteUint8(r.Payload)
-	return buf.PeekAllBytes()
+	return buf.Bytes()
 }
 
 func (r ClientChangeCipherSpec) String() string {

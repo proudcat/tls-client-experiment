@@ -3,9 +3,9 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 const (
@@ -27,17 +27,17 @@ func MakeClientFinished(params *helpers.SecurityParameters, verifyData []byte, t
 		},
 		HandshakeHeader: types.HandshakeHeader{
 			Type:   types.HS_TYPE_CLIENT_FINISHED,
-			Length: verifyDataLength,
+			Length: zkp.NewUint24(verifyDataLength),
 		},
 	}
 
 	record.VerifyData = verifyData
 
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.Write(record.HandshakeHeader.ToBytes())
 	buf.Write(record.VerifyData)
 
-	plaintext := buf.PeekAllBytes()
+	plaintext := buf.Bytes()
 
 	encryptedContent, err := helpers.Encrypt(params.ClientKey, params.ClientIV, plaintext, seqNum, record.RecordHeader.ContentType, helpers.Uint16ToBytes(tls_version))
 

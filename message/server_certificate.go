@@ -4,13 +4,12 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type Certificate struct {
-	Length      [3]byte
+	Length      zkp.Uint24
 	Content     []byte
 	Certificate *x509.Certificate
 }
@@ -28,7 +27,7 @@ func (certificate Certificate) String() string {
 type ServerCertificate struct {
 	RecordHeader      types.RecordHeader
 	HandshakeHeader   types.HandshakeHeader
-	CertificateLength [3]byte
+	CertificateLength zkp.Uint24
 	Certificates      []Certificate
 }
 
@@ -100,7 +99,7 @@ func (serverCertificate ServerCertificate) Verify(roots *x509.CertPool, host str
 	return true
 }
 
-func (me *ServerCertificate) FromBuffer(buf *common.Buffer) error {
+func (me *ServerCertificate) FromBuffer(buf *zkp.Buffer) error {
 
 	fmt.Println("Parsing Server Certificate")
 
@@ -116,7 +115,7 @@ func (me *ServerCertificate) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid record type %v", me.RecordHeader.ContentType)
 	}
 
-	buf.AddKey("handshake_start")
+	offset_handshake_start := buf.Offset()
 	if err := me.HandshakeHeader.FromBytes(buf.Next(types.HANDSHAKE_HEADER_SIZE)); err != nil {
 		return err
 	}
@@ -125,37 +124,34 @@ func (me *ServerCertificate) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid handshake type %v", me.HandshakeHeader.Type)
 	}
 
-	buf.AddKey("payload_start")
+	offset_payload_start := buf.Offset()
 
-	copy(me.CertificateLength[:], buf.Next(3))
+	me.CertificateLength = buf.NextUint24()
 
-	length := helpers.Bytes2Uint24(me.CertificateLength)
+	// length := helpers.Bytes2Uint24(me.CertificateLength)
 
 	// Parsing list of certificates
 	var offset uint32 = 0
-	for offset < length {
+	for offset < me.CertificateLength.Uint32() {
 		cert := Certificate{}
-		copy(cert.Length[:], buf.Next(3))
-		cert_length := helpers.Bytes2Uint24(cert.Length)
-		cert.Content = buf.Next(int(cert_length))
+		cert.Length = buf.NextUint24()
+		cert.Content = buf.Next(cert.Length.Uint32())
 
 		x509_cert, _ := x509.ParseCertificate(cert.Content)
 		cert.Certificate = x509_cert
 
 		me.Certificates = append(me.Certificates, cert)
-		offset += cert_length + 3 // 3 - size of Length
+		offset += cert.Length.Uint32() + 3 // 3 - size of Length
 	}
 
-	buf.AddKey("end")
+	offset_end := buf.Offset()
 
-	if int(me.HandshakeHeader.Length) != buf.ClipSize("payload_start", "end") {
+	if me.HandshakeHeader.Length.Uint32() != offset_end-offset_payload_start {
 		return fmt.Errorf("invalid handshake size")
 	}
 
 	//fix content length
-	me.RecordHeader.Length = uint16(buf.ClipSize("handshake_start", "end"))
-
-	buf.ClearKeys()
+	me.RecordHeader.Length = uint16(offset_end - offset_handshake_start)
 
 	return nil
 }

@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ServerHelloMessage struct {
@@ -41,7 +41,7 @@ type ServerHello struct {
 	Message         ServerHelloMessage
 }
 
-func (r *ServerHello) FromBuffer(buf *common.Buffer) error {
+func (r *ServerHello) FromBuffer(buf *zkp.Buffer) error {
 	fmt.Println("Parsing Server Hello")
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {
@@ -56,7 +56,7 @@ func (r *ServerHello) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid record type %d", r.RecordHeader.ContentType)
 	}
 
-	buf.AddKey("handshake_start")
+	offset_handshake_start := buf.Offset()
 
 	if err := r.HandshakeHeader.FromBytes(buf.Next(types.HANDSHAKE_HEADER_SIZE)); err != nil {
 		return err
@@ -66,34 +66,37 @@ func (r *ServerHello) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid handshake type %d", r.HandshakeHeader.Type)
 	}
 
-	buf.AddKey("handshake_body_start")
+	//buf.AddKey("handshake_body_start")
+	offset_handshake_body_start := buf.Offset()
 
 	msg := ServerHelloMessage{}
 
 	msg.Version = binary.BigEndian.Uint16(buf.Next(2))
 	copy(msg.Random[:], buf.Next(32))
-	msg.SessionIDLength, _ = buf.ReadUint8()
+	msg.SessionIDLength = buf.NextUint8()
 
 	if msg.SessionIDLength > 0 {
-		copy(msg.SessionID, buf.Next(int(msg.SessionIDLength)))
+		copy(msg.SessionID, buf.Next(uint32(msg.SessionIDLength)))
 	}
 
 	msg.CipherSuite = binary.BigEndian.Uint16(buf.Next(2))
-	msg.CompressionMethod, _ = buf.ReadUint8()
+	msg.CompressionMethod = buf.NextUint8()
 
-	buf.AddKey("before_extension")
-	hs_read_size := buf.ClipSize("handshake_body_start", "before_extension")
+	// buf.AddKey("before_extension")
+	offset_before_extension := buf.Offset()
+
+	hs_read_size := offset_before_extension - offset_handshake_body_start //buf.ClipSize("handshake_body_start", "before_extension")
 
 	// if has extensions then read the extension
-	if hs_read_size < int(r.HandshakeHeader.Length) {
-		msg.ExtensionsLength, _ = buf.ReadUint16()
+	if hs_read_size < r.HandshakeHeader.Length.Uint32() {
+		msg.ExtensionsLength = buf.NextUint16()
 		ext_remain := int(msg.ExtensionsLength)
 
 		for ext_remain > 0 {
-			ext_type, _ := buf.ReadUint16()
-			ext_len, _ := buf.ReadUint16()
+			ext_type := buf.NextUint16()
+			ext_len := buf.NextUint16()
 			if ext_len > 0 {
-				ext_data := buf.Next(int(ext_len))
+				ext_data := buf.Next(uint32(ext_len))
 				ext := types.Extension{Header: types.ExtensionHeader{Type: ext_type, Length: ext_len}, Data: ext_data}
 				msg.Extensions = append(msg.Extensions, ext)
 			} else {
@@ -104,19 +107,18 @@ func (r *ServerHello) FromBuffer(buf *common.Buffer) error {
 		}
 	}
 
-	buf.AddKey("end")
+	offset_end := buf.Offset()
 
-	if int(r.HandshakeHeader.Length) != buf.ClipSize("handshake_body_start", "end") {
+	if r.HandshakeHeader.Length.Uint32() != offset_end-offset_handshake_body_start {
 		return fmt.Errorf("invalid handshake size")
 	}
 
 	//multiple handshake message
 	if buf.Size() > 0 {
 		//fix record header Length
-		r.RecordHeader.Length = uint16(buf.ClipSize("handshake_start", "end"))
+		r.RecordHeader.Length = uint16(offset_end - offset_handshake_start)
 	}
 
-	buf.ClearKeys()
 	r.Message = msg
 	return nil
 }

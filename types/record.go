@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 const (
@@ -36,11 +36,11 @@ func (recordHeader *RecordHeader) FromBytes(bytes []byte) error {
 }
 
 func (recordHeader RecordHeader) ToBytes() []byte {
-	buf := common.NewBuffer()
+	buf := zkp.Buffer{}
 	buf.WriteUint8(recordHeader.ContentType)
 	buf.WriteUint16(recordHeader.Version)
 	buf.WriteUint16(recordHeader.Length)
-	return buf.PeekAllBytes()
+	return buf.Bytes()
 }
 
 func (h RecordHeader) String() string {

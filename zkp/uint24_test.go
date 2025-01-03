@@ -1,4 +1,4 @@
-package types
+package zkp
 
 import (
 	"encoding/binary"
@@ -32,7 +32,7 @@ func TestUint24_Set(t *testing.T) {
 				}
 			}()
 
-			var u uint24
+			var u Uint24
 			u.Set(tt.val)
 			if !tt.expectPanic {
 				if got := u.Uint32(); got != tt.val {
@@ -59,7 +59,7 @@ func TestUint24_Uint32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var u uint24
+			var u Uint24
 			u.Set(tt.val)
 			fmt.Println(tt.val, u.Bytes())
 			if got := u.Uint32(); got != tt.val {
@@ -96,7 +96,7 @@ func TestUint24_FromBytes(t *testing.T) {
 				}
 			}()
 
-			var u uint24
+			var u Uint24
 			u.FromBytes(tt.bytes)
 			u32 := append([]byte{0}, tt.bytes...)
 			fmt.Println(u32, binary.BigEndian.Uint32(u32), u.Uint32())
@@ -112,12 +112,12 @@ func TestUint24_FromBytes(t *testing.T) {
 func TestUint24_Equal(t *testing.T) {
 	tests := []struct {
 		name string
-		u1   uint24
-		u2   uint24
+		u1   Uint24
+		u2   Uint24
 		want bool
 	}{
-		{"Equal values", uint24{[3]uint8{0, 0, 1}}, uint24{[3]uint8{0, 0, 1}}, true},
-		{"Different values", uint24{[3]uint8{0, 0, 1}}, uint24{[3]uint8{0, 0, 2}}, false},
+		{"Equal values", Uint24{[3]uint8{0, 0, 1}}, Uint24{[3]uint8{0, 0, 1}}, true},
+		{"Different values", Uint24{[3]uint8{0, 0, 1}}, Uint24{[3]uint8{0, 0, 2}}, false},
 	}
 
 	for _, tt := range tests {

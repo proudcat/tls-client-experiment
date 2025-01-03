@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ServerHelloDone struct {
@@ -12,7 +12,7 @@ type ServerHelloDone struct {
 	HandshakeHeader types.HandshakeHeader
 }
 
-func (r *ServerHelloDone) FromBuffer(buf *common.Buffer) error {
+func (r *ServerHelloDone) FromBuffer(buf *zkp.Buffer) error {
 
 	fmt.Println("Parsing Server Hello Done")
 
@@ -28,7 +28,7 @@ func (r *ServerHelloDone) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid record type %x", r.RecordHeader.ContentType)
 	}
 
-	buf.AddKey("handshake_start")
+	offset_handshake_start := buf.Offset()
 
 	if err := r.HandshakeHeader.FromBytes(buf.Next(types.HANDSHAKE_HEADER_SIZE)); err != nil {
 		return err
@@ -38,14 +38,13 @@ func (r *ServerHelloDone) FromBuffer(buf *common.Buffer) error {
 		return fmt.Errorf("invalid handshake type %x", r.HandshakeHeader.Type)
 	}
 
-	buf.AddKey("end")
+	offset_end := buf.Offset()
 
 	if buf.Size() != 0 {
 		return fmt.Errorf("invalid record size")
 	}
 
-	r.RecordHeader.Length = uint16(buf.ClipSize("handshake_start", "end"))
-	buf.ClearKeys()
+	r.RecordHeader.Length = uint16(offset_end - offset_handshake_start)
 	return nil
 }
 
