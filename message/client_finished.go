@@ -38,14 +38,13 @@ func MakeClientFinished(params *helpers.SecurityParameters, verifyData []byte, t
 	buf.Write(record.VerifyData)
 
 	plaintext := buf.Bytes()
-
 	encryptedContent, err := helpers.Encrypt(params.ClientKey, params.ClientIV, plaintext, seqNum, record.RecordHeader.ContentType, helpers.Uint16ToBytes(tls_version))
 
 	if err != nil {
 		return record, err
 	}
-	record.EncryptedContent = encryptedContent
 
+	record.EncryptedContent = encryptedContent
 	record.RecordHeader.Length = uint16(len(encryptedContent))
 
 	return record, nil
@@ -56,9 +55,11 @@ func (clientHandshakeFinished ClientFinished) ToBytes() []byte {
 	return payload
 }
 
-func (clientHandshakeFinished ClientFinished) String() string {
+func (r ClientFinished) String() string {
 	out := "\n------------------------- Client Handshake Finished ------------------------- \n"
-	out += fmt.Sprint(clientHandshakeFinished.RecordHeader)
-	out += fmt.Sprintf("  VerifyData.........: %6x\n", clientHandshakeFinished.VerifyData)
+	out += fmt.Sprint(r.RecordHeader)
+	out += fmt.Sprint(r.HandshakeHeader)
+	out += fmt.Sprintf("  VerifyData.........: % x\n", r.VerifyData)
+	out += fmt.Sprintf("  EncryptedContent...: % x\n", r.EncryptedContent)
 	return out
 }

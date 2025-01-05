@@ -1,29 +1,30 @@
 package message
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/proudcat/tls-client-experiment/types"
 	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
-type ServerCertificateStatusParams struct {
-	StatusType []byte
-	Payload    []byte
-}
+// type ServerCertificateStatusParams struct {
+// 	StatusType []byte
+// 	Payload    []byte
+// }
 
 type ServerCertificateStatus struct {
 	RecordHeader    types.RecordHeader
 	HandshakeHeader types.HandshakeHeader
-	Params          ServerCertificateStatusParams
+	StatusType      byte
+	Payload         []byte
+	// Params          ServerCertificateStatusParams
 }
 
 func (r *ServerCertificateStatus) FromBuffer(buf *zkp.Buffer) error {
 
 	fmt.Println("Parsing Server Certificate Status")
 
-	r.Params = ServerCertificateStatusParams{}
+	// r.Params = ServerCertificateStatusParams{}
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {
 		return fmt.Errorf("invalid record size")
@@ -49,11 +50,11 @@ func (r *ServerCertificateStatus) FromBuffer(buf *zkp.Buffer) error {
 
 	offset_payload_start := buf.Offset()
 
-	r.Params.StatusType = buf.Next(1)
+	r.StatusType = buf.NextUint8()
 
-	payload_len := binary.BigEndian.Uint32(append([]byte{0}, buf.Next(3)...))
+	payload_len := buf.NextUint24().Uint32()
 
-	r.Params.Payload = buf.Next(payload_len)
+	r.Payload = buf.Next(payload_len)
 
 	offset_end := buf.Offset()
 
@@ -64,15 +65,14 @@ func (r *ServerCertificateStatus) FromBuffer(buf *zkp.Buffer) error {
 	//fix record header length  if multiple messages
 	r.RecordHeader.Length = uint16(offset_end - offset_handshake_start)
 
-	// buf.ClearKeys()
 	return nil
 }
 
-func (certificateStatus ServerCertificateStatus) String() string {
+func (me ServerCertificateStatus) String() string {
 	out := "\n------------------------- Server Certificate Status ------------------------- \n"
-	out += fmt.Sprint(certificateStatus.RecordHeader)
-	out += fmt.Sprint(certificateStatus.HandshakeHeader)
-	out += fmt.Sprintf("StatusType....: %6x\n", certificateStatus.Params.StatusType)
-	out += fmt.Sprintf("Payload.........: %6x\n", certificateStatus.Params.Payload)
+	out += fmt.Sprint(me.RecordHeader)
+	out += fmt.Sprint(me.HandshakeHeader)
+	out += fmt.Sprintf("StatusType....: %x\n", me.StatusType)
+	out += fmt.Sprintf("Payload.........: % x\n", me.Payload)
 	return out
 }

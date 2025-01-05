@@ -25,7 +25,6 @@ func (msg ServerHelloMessage) String() string {
 	out += fmt.Sprintf("Random......: % x\n", msg.Random)
 	out += fmt.Sprintf("Session ID length..: %#02x\n", msg.SessionIDLength)
 	out += fmt.Sprintf("Session ID.........: % x\n", msg.SessionID)
-	out += fmt.Sprintf("CipherSuites.......:\n")
 	out += fmt.Sprintf("CipherSuite........: %#04x - %s\n", msg.CipherSuite, types.CipherSuites[msg.CipherSuite].Name)
 	out += fmt.Sprintf("CompressionMethod..: %#02x\n", msg.CompressionMethod)
 	out += fmt.Sprintf("Extensions.........:\n")
@@ -66,7 +65,6 @@ func (r *ServerHello) FromBuffer(buf *zkp.Buffer) error {
 		return fmt.Errorf("invalid handshake type %d", r.HandshakeHeader.Type)
 	}
 
-	//buf.AddKey("handshake_body_start")
 	offset_handshake_body_start := buf.Offset()
 
 	msg := ServerHelloMessage{}

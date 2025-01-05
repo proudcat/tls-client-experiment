@@ -20,7 +20,7 @@ func (m ClientKeyExchangeMessage) Size() uint32 {
 
 func (m ClientKeyExchangeMessage) ToBytes() []byte {
 	buf := zkp.Buffer{}
-	buf.Write([]byte{m.PublicKeyLength})
+	buf.WriteUint8(m.PublicKeyLength)
 	buf.Write(m.PublicKey)
 	return buf.Bytes()
 }
@@ -74,7 +74,7 @@ func (r ClientKeyExchange) String() string {
 	out := "\n------------------------- Client Key Exchange ------------------------- \n"
 	out += fmt.Sprint(r.RecordHeader)
 	out += fmt.Sprint(r.HandshakeHeader)
-	out += fmt.Sprintf("PublicKeyLength.....: %#02x\n", r.Message.PublicKeyLength)
+	out += fmt.Sprintf("PublicKeyLength.....: %d\n", r.Message.PublicKeyLength)
 	out += fmt.Sprintf("Public Key..........: %x\n", r.Message.PublicKey)
 	out += fmt.Sprintf("Private Key.........: %x\n", r.PrivateKey)
 	return out

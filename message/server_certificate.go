@@ -16,8 +16,8 @@ type Certificate struct {
 
 func (certificate Certificate) String() string {
 	out := "........................................................................................................\n"
-	out += fmt.Sprintf("    Certificate Length.: %x\n", certificate.Length)
-	out += fmt.Sprintf("    Certificate........: %x\n", certificate.Content)
+	out += fmt.Sprintf("    Certificate Length.: %s\n", certificate.Length)
+	out += fmt.Sprintf("    Certificate........: % x\n", certificate.Content)
 	out += fmt.Sprintf("    Certificate Public Key........: %x\n", certificate.Certificate.PublicKey)
 	out += fmt.Sprintf("    Certificate Issuer............: %s\n", certificate.Certificate.Issuer)
 	out += fmt.Sprintf("    Signature Algorithm...........: %s\n", certificate.Certificate.SignatureAlgorithm)
@@ -128,8 +128,6 @@ func (me *ServerCertificate) FromBuffer(buf *zkp.Buffer) error {
 
 	me.CertificateLength = buf.NextUint24()
 
-	// length := helpers.Bytes2Uint24(me.CertificateLength)
-
 	// Parsing list of certificates
 	var offset uint32 = 0
 	for offset < me.CertificateLength.Uint32() {
@@ -171,7 +169,7 @@ func (me ServerCertificate) String() string {
 	out := "\n------------------------- Server Certificate ------------------------- \n"
 	out += fmt.Sprint(me.RecordHeader)
 	out += fmt.Sprint(me.HandshakeHeader)
-	out += fmt.Sprintf("Certificate Length.: %x\n", me.CertificateLength)
+	out += fmt.Sprintf("Certificate Length.: %s\n", me.CertificateLength)
 	out += "Certificates:\n"
 
 	for _, c := range me.Certificates {

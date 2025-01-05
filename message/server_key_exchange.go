@@ -64,11 +64,11 @@ func (r *ServerKeyExchange) FromBuffer(buf *zkp.Buffer) error {
 
 	offset_payload_start := buf.Offset()
 
-	r.Curve = buf.Next(1)[0]
+	r.Curve = buf.NextUint8()
 
 	r.CurveID = binary.BigEndian.Uint16(buf.Next(2))
 
-	r.PublicKeyLength = buf.Next(1)[0]
+	r.PublicKeyLength = buf.NextUint8()
 
 	r.PublicKey = buf.Next(uint32(r.PublicKeyLength))
 
@@ -129,7 +129,7 @@ func (serverKeyExchange ServerKeyExchange) String() string {
 	out += fmt.Sprint(serverKeyExchange.HandshakeHeader)
 	out += fmt.Sprintf("  Curve Type.........: %6x\n", serverKeyExchange.Curve)
 	out += fmt.Sprintf("  Curve..............: %6x - %s\n", serverKeyExchange.CurveID, types.Curves[serverKeyExchange.CurveID].Name)
-	out += fmt.Sprintf("  Public Key length..: %6x\n", serverKeyExchange.PublicKeyLength)
+	out += fmt.Sprintf("  Public Key length..: %d\n", serverKeyExchange.PublicKeyLength)
 	out += fmt.Sprintf("  Public Key.........: %6x\n", serverKeyExchange.PublicKey)
 	out += fmt.Sprint(serverKeyExchange.Signature)
 	return out

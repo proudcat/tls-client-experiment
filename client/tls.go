@@ -99,7 +99,6 @@ func (c *TLSClient) ReadRecord() ([]byte, error) {
 	if record_type == types.RECORD_TYPE_ALERT {
 		alert := message.AlertError{}
 		alert.FromBytes(chunk)
-		// fmt.Println(alert)
 		return nil, errors.New(alert.String())
 	}
 
