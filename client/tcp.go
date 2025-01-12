@@ -5,13 +5,13 @@ import (
 	"io"
 	"net"
 
-	"github.com/proudcat/tls-client-experiment/zkp"
+	"github.com/proudcat/tls-client-experiment/common"
 )
 
 type TCPClient struct {
 	io.Closer
 	conn         *net.TCPConn
-	in_bound_buf zkp.Buffer
+	in_bound_buf common.Buffer
 }
 
 func DialTCP(endpoint string) (*TCPClient, error) {
@@ -32,7 +32,7 @@ func DialTCP(endpoint string) (*TCPClient, error) {
 	}
 
 	client := &TCPClient{
-		in_bound_buf: zkp.Buffer{},
+		in_bound_buf: common.Buffer{},
 		conn:         conn,
 	}
 	return client, err

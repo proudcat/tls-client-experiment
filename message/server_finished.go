@@ -3,9 +3,9 @@ package message
 import (
 	"fmt"
 
+	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
-	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ServerFinished struct {
@@ -14,7 +14,7 @@ type ServerFinished struct {
 	VerifyData      []byte
 }
 
-func (r *ServerFinished) FromBuffer(serverKey []byte, serverIV []byte, buf *zkp.Buffer) error {
+func (r *ServerFinished) FromBuffer(serverKey []byte, serverIV []byte, buf *common.Buffer) error {
 	fmt.Println("Parsing Server Finished")
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {

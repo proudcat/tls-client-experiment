@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"fmt"
 
+	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/types"
-	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ClientKeyExchangeMessage struct {
@@ -19,7 +19,7 @@ func (m ClientKeyExchangeMessage) Size() uint32 {
 }
 
 func (m ClientKeyExchangeMessage) ToBytes() []byte {
-	buf := zkp.Buffer{}
+	buf := common.Buffer{}
 	buf.WriteUint8(m.PublicKeyLength)
 	buf.Write(m.PublicKey)
 	return buf.Bytes()
@@ -54,7 +54,7 @@ func NewClientKeyExchange(tls_version uint16, curve elliptic.Curve) *ClientKeyEx
 		},
 		HandshakeHeader: types.HandshakeHeader{
 			Type:   types.HS_TYPE_CLIENT_KEY_EXCHANGE,
-			Length: zkp.NewUint24(msg.Size()),
+			Length: common.NewUint24(msg.Size()),
 		},
 		PrivateKey: sk,
 		Message:    msg,
@@ -63,7 +63,7 @@ func NewClientKeyExchange(tls_version uint16, curve elliptic.Curve) *ClientKeyEx
 }
 
 func (r ClientKeyExchange) ToBytes() []byte {
-	buf := zkp.Buffer{}
+	buf := common.Buffer{}
 	buf.Write(r.RecordHeader.ToBytes())
 	buf.Write(r.HandshakeHeader.ToBytes())
 	buf.Write(r.Message.ToBytes())

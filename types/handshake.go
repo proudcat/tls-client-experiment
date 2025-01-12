@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/zkp"
+	"github.com/proudcat/tls-client-experiment/common"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 
 type HandshakeHeader struct {
 	Type   uint8
-	Length zkp.Uint24
+	Length common.Uint24
 }
 
 func (h *HandshakeHeader) FromBytes(bytes []byte) error {
@@ -38,7 +38,7 @@ func (h *HandshakeHeader) FromBytes(bytes []byte) error {
 }
 
 func (h HandshakeHeader) ToBytes() []byte {
-	buf := zkp.Buffer{}
+	buf := common.Buffer{}
 	buf.WriteUint8(h.Type)
 	buf.WriteUint24(h.Length)
 	return buf.Bytes()
@@ -51,6 +51,6 @@ func (h HandshakeHeader) Size() uint32 {
 func (h HandshakeHeader) String() string {
 	out := "Handshake Header\n"
 	out += fmt.Sprintf("    Type............: %#02x\n", h.Type)
-	out += fmt.Sprintf("    Length..........: %#s\n", h.Length)
+	out += fmt.Sprintf("    Length..........: % d\n", h.Length)
 	return out
 }

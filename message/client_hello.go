@@ -3,9 +3,9 @@ package message
 import (
 	"fmt"
 
+	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
-	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ClientHelloMessage struct {
@@ -46,7 +46,7 @@ func NewClientHelloMessage(tls_version uint16, host string) ClientHelloMessage {
 	server_name := []byte(host)
 	server_name_len := uint16(len(server_name))
 
-	buf := zkp.Buffer{}
+	buf := common.Buffer{}
 	buf.WriteUint16(server_name_len + 3) // server name list length
 	buf.WriteUint8(0x00)                 // name type: host_name
 	buf.WriteUint16(server_name_len)     // name length
@@ -128,7 +128,7 @@ func (msg ClientHelloMessage) Size() uint32 {
 }
 
 func (msg ClientHelloMessage) ToBytes() []byte {
-	buf := zkp.Buffer{}
+	buf := common.Buffer{}
 	buf.WriteUint16(msg.Version)
 	buf.Write(msg.Random[:])
 	buf.WriteUint8(msg.SessionIdLength)
@@ -185,7 +185,7 @@ func NewClientHello(tls_version uint16, host string) ClientHello {
 		},
 		HandshakeHeader: types.HandshakeHeader{
 			Type:   types.HS_TYPE_CLIENT_HELLO,
-			Length: zkp.NewUint24(msg_size),
+			Length: common.NewUint24(msg_size),
 		},
 		Message: msg,
 	}
@@ -193,7 +193,7 @@ func NewClientHello(tls_version uint16, host string) ClientHello {
 }
 
 func (clientHello ClientHello) ToBytes() []byte {
-	buf := zkp.Buffer{}
+	buf := common.Buffer{}
 	buf.Write(clientHello.RecordHeader.ToBytes())
 	buf.Write(clientHello.HandshakeHeader.ToBytes())
 	buf.Write(clientHello.Message.ToBytes())

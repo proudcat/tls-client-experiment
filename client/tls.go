@@ -11,7 +11,6 @@ import (
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/message"
 	"github.com/proudcat/tls-client-experiment/types"
-	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 /*
@@ -40,7 +39,7 @@ type TLSClient struct {
 	version         uint16
 	host            string
 	tcp             *TCPClient
-	messages        zkp.Buffer
+	messages        common.Buffer
 	clientSeqNumber byte
 	serverSeqNumber byte
 	cipherSuite     uint16
@@ -58,7 +57,7 @@ func NewTLSClient(host string, version uint16) *TLSClient {
 		version:         version,
 		host:            host,
 		tcp:             tcp,
-		messages:        zkp.Buffer{},
+		messages:        common.Buffer{},
 		clientSeqNumber: 0,
 		serverSeqNumber: 0,
 	}
@@ -125,7 +124,7 @@ func (c *TLSClient) Handshake() error {
 		return err
 	}
 
-	recv_buf := &zkp.Buffer{}
+	recv_buf := &common.Buffer{}
 	recv_buf.Write(server_hello_bytes)
 	server_hello := message.ServerHello{}
 	server_hello.FromBuffer(recv_buf)
@@ -139,7 +138,7 @@ func (c *TLSClient) Handshake() error {
 		// multiple message handshake which means there are multiple handshakes in on record.
 		// |record Header| Server Hello | Certificate |...|
 		// we should prepend record header for Certificate Handshake
-		buf := zkp.Buffer{}
+		buf := common.Buffer{}
 		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00}) // prepend record header
 		buf.Write(recv_buf.Bytes())
 		recv_buf.Write(buf.Bytes())
@@ -171,7 +170,7 @@ func (c *TLSClient) Handshake() error {
 	if support_status_request {
 		if recv_buf.Size() > 0 {
 			//multiple message handshake
-			buf := zkp.Buffer{}
+			buf := common.Buffer{}
 			buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
 			buf.Write(recv_buf.Bytes())
 			recv_buf.Write(buf.Bytes())
@@ -192,7 +191,7 @@ func (c *TLSClient) Handshake() error {
 	/*********** receive server_key_exchange ***********/
 	if recv_buf.Size() > 0 {
 		//multiple message handshake
-		buf := zkp.Buffer{}
+		buf := common.Buffer{}
 		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
 		buf.Write(recv_buf.Bytes())
 		recv_buf.Write(buf.Bytes())
@@ -222,7 +221,7 @@ func (c *TLSClient) Handshake() error {
 	server_hello_done := message.ServerHelloDone{}
 	if recv_buf.Size() > 0 {
 		//multiple message handshake
-		buf := zkp.Buffer{}
+		buf := common.Buffer{}
 		buf.Write([]byte{0x16, 0x03, 0x03, 0x00, 0x00})
 		buf.Write(recv_buf.Bytes())
 		recv_buf.Write(buf.Bytes())

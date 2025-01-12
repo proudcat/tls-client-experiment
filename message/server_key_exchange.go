@@ -7,9 +7,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/types"
-	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type Signature struct {
@@ -36,7 +36,7 @@ type ServerKeyExchange struct {
 	Signature       Signature
 }
 
-func (r *ServerKeyExchange) FromBuffer(buf *zkp.Buffer) error {
+func (r *ServerKeyExchange) FromBuffer(buf *common.Buffer) error {
 
 	fmt.Println("Parsing Server Key Exchange")
 
@@ -92,7 +92,7 @@ func (r *ServerKeyExchange) FromBuffer(buf *zkp.Buffer) error {
 }
 
 func (serverKeyExchange ServerKeyExchange) VerifySignature(securityParams helpers.SecurityParameters, pubKey any) bool {
-	buf := zkp.Buffer{}
+	buf := common.Buffer{}
 	buf.Write(securityParams.ClientRandom[:])
 	buf.Write(securityParams.ServerRandom[:])
 	buf.WriteUint8(serverKeyExchange.Curve)

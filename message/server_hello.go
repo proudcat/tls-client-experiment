@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/types"
-	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 type ServerHelloMessage struct {
@@ -40,7 +40,7 @@ type ServerHello struct {
 	Message         ServerHelloMessage
 }
 
-func (r *ServerHello) FromBuffer(buf *zkp.Buffer) error {
+func (r *ServerHello) FromBuffer(buf *common.Buffer) error {
 	fmt.Println("Parsing Server Hello")
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {

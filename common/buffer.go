@@ -1,4 +1,4 @@
-package zkp
+package common
 
 import (
 	"encoding/binary"
