@@ -8,10 +8,6 @@ import (
 	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
-const (
-	verifyDataLength = 12
-)
-
 type ClientFinished struct {
 	RecordHeader     types.RecordHeader
 	HandshakeHeader  types.HandshakeHeader
@@ -27,7 +23,7 @@ func MakeClientFinished(params *helpers.SecurityParameters, verifyData []byte, t
 		},
 		HandshakeHeader: types.HandshakeHeader{
 			Type:   types.HS_TYPE_CLIENT_FINISHED,
-			Length: zkp.NewUint24(verifyDataLength),
+			Length: zkp.NewUint24(uint32(len(verifyData))),
 		},
 	}
 

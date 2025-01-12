@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"testing"
+
+	"golang.org/x/exp/slices"
 )
 
 func TestUint24_Set(t *testing.T) {
@@ -124,6 +126,31 @@ func TestUint24_Equal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.u1.Equal(tt.u2); got != tt.want {
 				t.Errorf("Uint24.Equal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+func TestUint24_Bytes(t *testing.T) {
+	tests := []struct {
+		name     string
+		val      uint32
+		expected []byte
+	}{
+		{"Value 0", 0, []byte{0, 0, 0}},
+		{"Value 1", 1, []byte{0, 0, 1}},
+		{"Value 255", 255, []byte{0, 0, 255}},
+		{"Value 256", 256, []byte{0, 1, 0}},
+		{"Value 65535", 65535, []byte{0, 255, 255}},
+		{"Value 65536", 65536, []byte{1, 0, 0}},
+		{"Value MaxUint24", MaxUint24, []byte{255, 255, 255}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var u Uint24
+			u.Set(tt.val)
+			if got := u.Bytes(); !slices.Equal(got, tt.expected) {
+				t.Errorf("Uint24.Bytes() = %v, want %v", got, tt.expected)
 			}
 		})
 	}

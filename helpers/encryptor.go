@@ -37,13 +37,22 @@ func Encrypt(clientKey, clientIV, plaintext []byte, seq byte, record_type byte, 
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
+	nonce = []byte{154, 159, 30, 10, 42, 208, 196, 33}
 	nonceIV := append(clientIV, nonce...)
 
-	buf := zkp.Buffer{}
-	buf.WriteUint8(seq)
-	buf.WriteUint8(record_type)
-	buf.Write(tls_version[:])
-	buf.WriteUint16(uint16(len(plaintext)))
+	ad := make([]byte, 7)
+	ad = append(ad, seq)
+	ad = append(ad, record_type)
+	ad = append(ad, tls_version[:]...)
+
+	plaintext_len := Uint16ToBytes(uint16(len(plaintext)))
+	ad = append(ad, plaintext_len[:]...)
+
+	// buf := zkp.Buffer{}
+	// buf.WriteUint8(seq)
+	// buf.WriteUint8(record_type)
+	// buf.Write(tls_version[:])
+	// buf.WriteUint16(uint16(len(plaintext)))
 
 	// additionalDataPayload := make([]byte, 7)
 	// additionalDataPayload = append(additionalDataPayload, seq)
@@ -54,7 +63,7 @@ func Encrypt(clientKey, clientIV, plaintext []byte, seq byte, record_type byte, 
 
 	// Seal encrypts and authenticates plaintext, authenticates the
 	// additional data (aad) and returns ciphertext together with authentication tag.
-	ciphertext := gcmAuthenticator.Seal(nil, nonceIV, plaintext, buf.Bytes())
+	ciphertext := gcmAuthenticator.Seal(nil, nonceIV, plaintext, ad)
 	if ciphertext == nil {
 		fmt.Println("AEAD.Seal: Failed to encrypt message")
 		return nil, errors.New("math: Failed to encrypt message")
