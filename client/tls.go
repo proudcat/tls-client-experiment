@@ -324,6 +324,7 @@ func (c *TLSClient) Handshake() error {
 	c.serverSeqNumber += 1
 
 	fmt.Println("Server Finished:", server_finished)
+	//todo check verify data???
 
 	return nil
 }

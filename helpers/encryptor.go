@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-
-	"github.com/proudcat/tls-client-experiment/zkp"
 )
 
 const (
@@ -37,7 +35,7 @@ func Encrypt(clientKey, clientIV, plaintext []byte, seq byte, record_type byte, 
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
-	nonce = []byte{154, 159, 30, 10, 42, 208, 196, 33}
+
 	nonceIV := append(clientIV, nonce...)
 
 	ad := make([]byte, 7)
@@ -96,13 +94,14 @@ func Decrypt(serverKey, serverIV, ciphertext []byte, seq byte, record_type byte,
 	// contentBytesLength := Uint16ToBytes(uint16(len(rest) - AuthenticationTagSize))
 	// additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
-	buf := zkp.Buffer{}
-	buf.WriteUint8(seq)
-	buf.WriteUint8(record_type)
-	buf.Write(tls_version[:])
-	buf.WriteUint16(uint16(len(rest) - AuthenticationTagSize))
+	ad := make([]byte, 7)
+	ad = append(ad, seq)
+	ad = append(ad, record_type)
+	ad = append(ad, tls_version[:]...)
+	content_length := Uint16ToBytes(uint16(len(rest) - AuthenticationTagSize))
+	ad = append(ad, content_length[:]...)
 
-	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, buf.Bytes())
+	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, ad)
 	if err != nil {
 		fmt.Println("Failed to decrypt message: ", err.Error())
 		return nil, err
