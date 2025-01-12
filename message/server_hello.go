@@ -132,16 +132,16 @@ func (r ServerHello) SupportExtension(ext_type uint16) bool {
 	return support
 }
 
-func (r ServerHello) SupportSessionTicket() bool {
-	support := false
-	for _, ext := range r.Message.Extensions {
-		if ext.Header.Type == types.EXT_TYPE_SESSION_TICKET {
-			support = (ext.Header.Length > 0)
-			break
-		}
-	}
-	return support
-}
+// func (r ServerHello) SupportSessionTicket() bool {
+// 	support := false
+// 	for _, ext := range r.Message.Extensions {
+// 		if ext.Header.Type == types.EXT_TYPE_SESSION_TICKET {
+// 			support = (ext.Header.Length > 0)
+// 			break
+// 		}
+// 	}
+// 	return support
+// }
 
 func (r ServerHello) String() string {
 	out := "\n------------------------- Server Hello ------------------------- \n"

@@ -21,11 +21,13 @@ import (
    ClientHello                  -------->
                                                    ServerHello
                                                    Certificate
+											[CertificateStatus]
                                              ServerKeyExchange
                                 <--------      ServerHelloDone
    ClientKeyExchange
    ChangeCipherSpec
    Finished                     -------->
+											[NewSessionTicket]
                                               ChangeCipherSpec
                                 <--------             Finished
    Application Data             <------->     Application Data
@@ -253,14 +255,13 @@ func (c *TLSClient) Handshake() error {
 	/*********** client finished ***********/
 	hash_messages := helpers.HashByteArray(types.CipherSuites[c.cipherSuite].HashingAlgorithm, c.messages.Bytes())
 	verify_data := helpers.MakeClientVerifyData(&c.securityParams, hash_messages)
-	if verify_data == nil {
+	if verify_data == nil || len(verify_data) != 12 {
 		return fmt.Errorf("could not create VerifyData")
 	}
 	client_finished, err := message.MakeClientFinished(&c.securityParams, verify_data, c.version, 0)
 	if err != nil {
 		return err
 	}
-	c.clientSeqNumber += 1
 
 	client_final_payload := append(client_key_exchange.ToBytes(), client_change_cipher_spec.ToBytes()...)
 	client_final_payload = append(client_final_payload, client_finished.ToBytes()...)
@@ -268,7 +269,9 @@ func (c *TLSClient) Handshake() error {
 	c.messages.Write(client_finished.HandshakeHeader.ToBytes())
 	c.messages.Write(verify_data)
 	fmt.Println(client_finished)
+	c.clientSeqNumber += 1
 
+	// send client key exchange || change cipher spec || finished
 	if err := c.Write(client_final_payload); err != nil {
 		return err
 	}
@@ -278,7 +281,7 @@ func (c *TLSClient) Handshake() error {
 	}
 
 	/*********** receive server session ticket ***********/
-	support_ticket := server_hello.SupportSessionTicket()
+	support_ticket := server_hello.SupportExtension(types.EXT_TYPE_SESSION_TICKET)
 	fmt.Println("support ticket:", support_ticket)
 	if support_ticket {
 		recv_bytes, err := c.ReadRecord()
