@@ -78,6 +78,31 @@ func (c *TLSClient) Write(data []byte) error {
 	return err
 }
 
+func (c *TLSClient) SendAppData(data []byte) error {
+	msg, err := message.NewAppData(c.securityParams.ClientKey, c.securityParams.ClientIV, data, c.version, c.clientSeqNumber)
+	if err != nil {
+		return err
+	}
+	//todo check it should increment seq number
+	c.clientSeqNumber += 1
+	return c.Write(msg.Bytes())
+}
+
+func (c *TLSClient) RecvAppData() (*message.AppData, error) {
+	recv_bytes, err := c.ReadRecord()
+	if err != nil {
+		return nil, err
+	}
+
+	recv_buf := &common.Buffer{}
+	recv_buf.Write(recv_bytes)
+	app_data := &message.AppData{}
+	app_data.FromBuffer(c.securityParams.ServerKey, c.securityParams.ServerIV, c.serverSeqNumber, recv_buf)
+	c.serverSeqNumber += 1
+
+	return app_data, nil
+}
+
 func (c *TLSClient) ReadRecord() ([]byte, error) {
 
 	header_bytes, err := c.tcp.Read(types.RECORD_HEADER_SIZE)
@@ -322,7 +347,7 @@ func (c *TLSClient) Handshake() error {
 	}
 	c.serverSeqNumber += 1
 
-	fmt.Println("Server Finished:", server_finished)
+	fmt.Println(server_finished)
 	//todo check verify data???
 
 	return nil

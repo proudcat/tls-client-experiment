@@ -12,11 +12,11 @@ const (
 )
 
 const (
-	RECORD_TYPE_CHANGE_CIPHER_SPEC = 0x14
-	RECORD_TYPE_ALERT              = 0x15
-	RECORD_TYPE_HANDSHAKE          = 0x16
-	RECORD_TYPE_APPLICATION_DATA   = 0x17
-	RECORD_TYPE_HEARTBEAT          = 0x18 /* RFC 6520 */
+	RECORD_TYPE_CHANGE_CIPHER_SPEC uint8 = 0x14
+	RECORD_TYPE_ALERT              uint8 = 0x15
+	RECORD_TYPE_HANDSHAKE          uint8 = 0x16
+	RECORD_TYPE_APPLICATION_DATA   uint8 = 0x17
+	RECORD_TYPE_HEARTBEAT          uint8 = 0x18 /* RFC 6520 */
 )
 
 type RecordHeader struct {
