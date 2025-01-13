@@ -20,18 +20,20 @@ import (
    ClientHello                  -------->
                                                    ServerHello
                                                    Certificate
-											[CertificateStatus]
+											 CertificateStatus*
                                              ServerKeyExchange
                                 <--------      ServerHelloDone
    ClientKeyExchange
    ChangeCipherSpec
    Finished                     -------->
-											[NewSessionTicket]
+											  NewSessionTicket*
                                               ChangeCipherSpec
                                 <--------             Finished
    Application Data             <------->     Application Data
 
-   				TLS1.2 Handshake workflow
+           PS: record marked with * is optional
+
+   				TLS1.2 Handshake Workflow
 */
 
 type TLSClient struct {
@@ -88,19 +90,36 @@ func (c *TLSClient) SendAppData(data []byte) error {
 	return c.Write(msg.Bytes())
 }
 
-func (c *TLSClient) RecvAppData() (*message.AppData, error) {
-	recv_bytes, err := c.ReadRecord()
-	if err != nil {
-		return nil, err
+func (c *TLSClient) RecvAppData() ([]byte, error) {
+	var result []byte
+
+	for {
+		chunk, err := c.ReadRecord()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			if len(chunk) > 0 {
+				/*
+				  Server side will send an Encrypted Alert Record as a notification
+				  that the encrypted session is going to be terminated
+				  after the data exchange was complete, which is perfectly normal.
+				*/
+				break
+			}
+			return nil, err
+		}
+
+		recvBuf := &common.Buffer{}
+		recvBuf.Write(chunk)
+		appData := &message.AppData{}
+		appData.FromBuffer(c.securityParams.ServerKey, c.securityParams.ServerIV, c.serverSeqNumber, recvBuf)
+		c.serverSeqNumber += 1
+
+		result = append(result, appData.Data...)
 	}
 
-	recv_buf := &common.Buffer{}
-	recv_buf.Write(recv_bytes)
-	app_data := &message.AppData{}
-	app_data.FromBuffer(c.securityParams.ServerKey, c.securityParams.ServerIV, c.serverSeqNumber, recv_buf)
-	c.serverSeqNumber += 1
-
-	return app_data, nil
+	return result, nil
 }
 
 func (c *TLSClient) ReadRecord() ([]byte, error) {
@@ -125,7 +144,7 @@ func (c *TLSClient) ReadRecord() ([]byte, error) {
 	if record_type == types.RECORD_TYPE_ALERT {
 		alert := message.AlertError{}
 		alert.FromBytes(chunk)
-		return nil, errors.New(alert.String())
+		return chunk, errors.New(alert.String())
 	}
 
 	return chunk, nil

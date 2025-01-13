@@ -69,7 +69,9 @@ func (client *HTTPSClient) Request(method, path_with_query string, headers map[s
 		return err
 	}
 
-	fmt.Println(resp)
+	html_text := string(resp)
+
+	fmt.Printf("\n---------------- Response ----------------\n%s", html_text)
 
 	return client.tls.Close()
 }
