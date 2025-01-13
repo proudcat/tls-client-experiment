@@ -1,13 +1,13 @@
-package helpers
+package types
 
 import (
-	"crypto/elliptic"
+	"crypto/ecdh"
 )
 
 type SecurityParameters struct {
 	ServerKeyExchangePublicKey  []byte
 	ClientKeyExchangePrivateKey []byte
-	Curve                       elliptic.Curve
+	Curve                       ecdh.Curve
 	PreMasterSecret             []byte //32 bytes
 	MasterSecret                []byte //48 bytes
 	ClientRandom                [32]byte

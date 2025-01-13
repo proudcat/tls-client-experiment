@@ -1,7 +1,7 @@
 package message
 
 import (
-	"crypto/elliptic"
+	"crypto/ecdh"
 	"crypto/rand"
 	"fmt"
 
@@ -32,14 +32,14 @@ type ClientKeyExchange struct {
 	Message         ClientKeyExchangeMessage
 }
 
-func NewClientKeyExchange(tls_version uint16, curve elliptic.Curve) *ClientKeyExchange {
+func NewClientKeyExchange(tls_version uint16, curve ecdh.Curve) *ClientKeyExchange {
 
-	sk, sk_x, sk_y, err := elliptic.GenerateKey(curve, rand.Reader)
+	sk, err := curve.GenerateKey(rand.Reader)
 	if err != nil {
 		panic("Failed to generate private key")
 	}
 
-	pk := elliptic.Marshal(curve, sk_x, sk_y)
+	pk := sk.PublicKey().Bytes()
 
 	msg := ClientKeyExchangeMessage{
 		PublicKeyLength: byte(len(pk)),
@@ -56,7 +56,7 @@ func NewClientKeyExchange(tls_version uint16, curve elliptic.Curve) *ClientKeyEx
 			Type:   types.HS_TYPE_CLIENT_KEY_EXCHANGE,
 			Length: common.NewUint24(msg.Size()),
 		},
-		PrivateKey: sk,
+		PrivateKey: sk.Bytes(),
 		Message:    msg,
 	}
 	return record

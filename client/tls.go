@@ -45,7 +45,7 @@ type TLSClient struct {
 	clientSeqNumber byte
 	serverSeqNumber byte
 	cipherSuite     uint16
-	securityParams  helpers.SecurityParameters
+	securityParams  types.SecurityParameters
 }
 
 func NewTLSClient(host string, version uint16) *TLSClient {

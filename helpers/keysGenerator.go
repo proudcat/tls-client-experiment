@@ -2,11 +2,12 @@ package helpers
 
 import (
 	"crypto"
-	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
 	"hash"
+
+	"github.com/proudcat/tls-client-experiment/types"
 )
 
 var masterSecretLabel = []byte("master secret")
@@ -110,18 +111,36 @@ func KeysFromMasterSecret(masterSecret, clientRandom, serverRandom []byte, macLe
 	return
 }
 
-func GeneratePreMasterSecret(securityParams *SecurityParameters) []byte {
-	publicKeyX, publicKeyY := elliptic.Unmarshal(securityParams.Curve, securityParams.ServerKeyExchangePublicKey)
-	if publicKeyX == nil {
-		return nil
+func GeneratePreMasterSecret(securityParams *types.SecurityParameters) []byte {
+
+	sk, err := securityParams.Curve.NewPrivateKey(securityParams.ClientKeyExchangePrivateKey)
+	if err != nil {
+		panic(err)
 	}
-	xShared, _ := securityParams.Curve.ScalarMult(publicKeyX, publicKeyY, securityParams.ClientKeyExchangePrivateKey)
-	sharedKey := make([]byte, (securityParams.Curve.Params().BitSize+7)/8)
-	return xShared.FillBytes(sharedKey)
+
+	pk, err := securityParams.Curve.NewPublicKey(securityParams.ServerKeyExchangePublicKey)
+	if err != nil {
+		panic(err)
+	}
+
+	shared_key, err := sk.ECDH(pk)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if len(shared_key)%8 != 0 {
+		panic("shared key length is not a multiple of 8")
+	}
+
+	return shared_key
+
+	// sharedKey := make([]byte, (securityParams.Curve.Params().BitSize+7)/8)
+	// return xShared.FillBytes(sharedKey)
 }
 
 // Returns the contents of the verify_data member of a client's Finished message.
-func MakeClientVerifyData(securityParams *SecurityParameters, data []byte) []byte {
+func MakeClientVerifyData(securityParams *types.SecurityParameters, data []byte) []byte {
 	preMasterSecret := GeneratePreMasterSecret(securityParams)
 	securityParams.PreMasterSecret = preMasterSecret
 	if preMasterSecret == nil {
@@ -139,7 +158,7 @@ func MakeClientVerifyData(securityParams *SecurityParameters, data []byte) []byt
 	return out[:12]
 }
 
-func MakeServerVerifyData(securityParams *SecurityParameters, data []byte) []byte {
+func MakeServerVerifyData(securityParams *types.SecurityParameters, data []byte) []byte {
 
 	out := make([]byte, finishedVerifyLength)
 	prfForVersionX()(out, securityParams.MasterSecret, serverFinishedLabel, data)
