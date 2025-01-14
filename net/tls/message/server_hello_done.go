@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/buildin"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 type ServerHelloDone struct {
@@ -12,7 +12,7 @@ type ServerHelloDone struct {
 	HandshakeHeader types.HandshakeHeader
 }
 
-func (r *ServerHelloDone) FromBuffer(buf *common.Buffer) error {
+func (r *ServerHelloDone) FromBuffer(buf *buildin.Buffer) error {
 
 	fmt.Println("Parsing Server Hello Done")
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/proudcat/tls-client-experiment/net/http"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 func main() {

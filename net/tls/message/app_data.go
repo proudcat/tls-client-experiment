@@ -3,9 +3,9 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/buildin"
 	"github.com/proudcat/tls-client-experiment/helpers"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 type AppData struct {
@@ -26,7 +26,7 @@ func (app AppData) Bytes() []byte {
 	return append(app.RecordHeader.ToBytes(), app.Payload...)
 }
 
-func (app *AppData) FromBuffer(key []byte, iv []byte, seq byte, buf *common.Buffer) error {
+func (app *AppData) FromBuffer(key []byte, iv []byte, seq byte, buf *buildin.Buffer) error {
 	fmt.Println("Parsing Server Application Data")
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {

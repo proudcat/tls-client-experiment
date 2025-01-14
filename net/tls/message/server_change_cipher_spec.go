@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/buildin"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 type ServerChangeCipherSpec struct {
@@ -12,7 +12,7 @@ type ServerChangeCipherSpec struct {
 	Payload      []byte
 }
 
-func (r *ServerChangeCipherSpec) FromBuffer(buf *common.Buffer) error {
+func (r *ServerChangeCipherSpec) FromBuffer(buf *buildin.Buffer) error {
 
 	fmt.Println("Parsing Server Change Cipher Spec")
 

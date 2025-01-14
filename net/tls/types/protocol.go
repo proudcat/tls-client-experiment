@@ -23,12 +23,3 @@ func VersionName(version uint16) string {
 		return fmt.Sprintf("0x%04X", version)
 	}
 }
-
-type ContentType uint8
-
-const (
-	CHANGE_CIPHER_SPEC ContentType = 20
-	ALERT              ContentType = 21
-	HANDSHAKE          ContentType = 22
-	APPLICATION_DATA   ContentType = 23
-)

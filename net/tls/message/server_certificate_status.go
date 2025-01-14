@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/buildin"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 // type ServerCertificateStatusParams struct {
@@ -20,7 +20,7 @@ type ServerCertificateStatus struct {
 	// Params          ServerCertificateStatusParams
 }
 
-func (r *ServerCertificateStatus) FromBuffer(buf *common.Buffer) error {
+func (r *ServerCertificateStatus) FromBuffer(buf *buildin.Buffer) error {
 
 	fmt.Println("Parsing Server Certificate Status")
 

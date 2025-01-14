@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/buildin"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 
 type HandshakeHeader struct {
 	Type   uint8
-	Length common.Uint24
+	Length buildin.Uint24
 }
 
 func (h *HandshakeHeader) FromBytes(bytes []byte) error {
@@ -38,7 +38,7 @@ func (h *HandshakeHeader) FromBytes(bytes []byte) error {
 }
 
 func (h HandshakeHeader) ToBytes() []byte {
-	buf := common.Buffer{}
+	buf := buildin.Buffer{}
 	buf.WriteUint8(h.Type)
 	buf.WriteUint24(h.Length)
 	return buf.Bytes()

@@ -5,13 +5,13 @@ import (
 	"io"
 	"net"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/buildin"
 )
 
 type TCPClient struct {
 	io.Closer
 	conn         *net.TCPConn
-	in_bound_buf common.Buffer
+	in_bound_buf buildin.Buffer
 }
 
 func DialTCP(endpoint string) (*TCPClient, error) {
@@ -32,7 +32,7 @@ func DialTCP(endpoint string) (*TCPClient, error) {
 	}
 
 	client := &TCPClient{
-		in_bound_buf: common.Buffer{},
+		in_bound_buf: buildin.Buffer{},
 		conn:         conn,
 	}
 	return client, err

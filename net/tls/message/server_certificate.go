@@ -4,12 +4,12 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/buildin"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 type Certificate struct {
-	Length      common.Uint24
+	Length      buildin.Uint24
 	Content     []byte
 	Certificate *x509.Certificate
 }
@@ -27,7 +27,7 @@ func (certificate Certificate) String() string {
 type ServerCertificate struct {
 	RecordHeader      types.RecordHeader
 	HandshakeHeader   types.HandshakeHeader
-	CertificateLength common.Uint24
+	CertificateLength buildin.Uint24
 	Certificates      []Certificate
 }
 
@@ -99,7 +99,7 @@ func (serverCertificate ServerCertificate) Verify(roots *x509.CertPool, host str
 	return true
 }
 
-func (me *ServerCertificate) FromBuffer(buf *common.Buffer) error {
+func (me *ServerCertificate) FromBuffer(buf *buildin.Buffer) error {
 
 	fmt.Println("Parsing Server Certificate")
 

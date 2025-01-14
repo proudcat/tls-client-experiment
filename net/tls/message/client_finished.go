@@ -3,9 +3,9 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/buildin"
 	"github.com/proudcat/tls-client-experiment/helpers"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 type ClientFinished struct {
@@ -23,13 +23,13 @@ func MakeClientFinished(params *types.SecurityParameters, verifyData []byte, tls
 		},
 		HandshakeHeader: types.HandshakeHeader{
 			Type:   types.HS_TYPE_CLIENT_FINISHED,
-			Length: common.NewUint24(uint32(len(verifyData))),
+			Length: buildin.NewUint24(uint32(len(verifyData))),
 		},
 	}
 
 	record.VerifyData = verifyData
 
-	buf := common.Buffer{}
+	buf := buildin.Buffer{}
 	buf.Write(record.HandshakeHeader.ToBytes())
 	buf.Write(record.VerifyData)
 

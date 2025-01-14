@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
+	"github.com/proudcat/tls-client-experiment/buildin"
 )
 
 const (
@@ -40,7 +40,7 @@ func (h *ExtensionHeader) FromBytes(bytes []byte) error {
 }
 
 func (h ExtensionHeader) ToBytes() []byte {
-	buf := common.Buffer{}
+	buf := buildin.Buffer{}
 	buf.WriteUint16(h.Type)
 	buf.WriteUint16(h.Length)
 	return buf.Bytes()

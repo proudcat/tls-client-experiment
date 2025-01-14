@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/proudcat/tls-client-experiment/helpers"
-	"github.com/proudcat/tls-client-experiment/message"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/net/tls/message"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 func TestBuffer_Size(t *testing.T) {

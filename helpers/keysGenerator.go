@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"hash"
 
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 var masterSecretLabel = []byte("master secret")

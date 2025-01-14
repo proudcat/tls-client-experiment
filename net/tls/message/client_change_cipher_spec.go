@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/buildin"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 type ClientChangeCipherSpec struct {
@@ -26,7 +26,7 @@ func NewClientChangeCipherSpec(tls_version uint16) *ClientChangeCipherSpec {
 }
 
 func (r ClientChangeCipherSpec) ToBytes() []byte {
-	buf := common.Buffer{}
+	buf := buildin.Buffer{}
 	buf.Write(r.RecordHeader.ToBytes())
 	buf.WriteUint8(r.Payload)
 	return buf.Bytes()

@@ -3,8 +3,8 @@ package message
 import (
 	"fmt"
 
-	"github.com/proudcat/tls-client-experiment/common"
-	"github.com/proudcat/tls-client-experiment/types"
+	"github.com/proudcat/tls-client-experiment/buildin"
+	"github.com/proudcat/tls-client-experiment/net/tls/types"
 )
 
 type ServerSessionTicket struct {
@@ -15,7 +15,7 @@ type ServerSessionTicket struct {
 	Message         []byte
 }
 
-func (r *ServerSessionTicket) FromBuffer(buf *common.Buffer) error {
+func (r *ServerSessionTicket) FromBuffer(buf *buildin.Buffer) error {
 	fmt.Println("Parsing Server Session Ticket")
 
 	if buf.Size() < types.RECORD_HEADER_SIZE {
