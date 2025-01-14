@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// NewRequest returns a new Request given a method, URL, and optional body.
 func NewRequest(method, uri string, body io.ReadCloser) (*Request, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
@@ -31,24 +30,11 @@ type Request struct {
 	// For client requests, an empty string means GET.
 	Method string
 
-	// URL specifies the URL to access (for client requests).
-	// For client requests, the URL's Host specifies the server to
-	// connect to, while the Request's Host field optionally
-	// specifies the Host header value to send in the HTTP
-	// request.
 	URL *url.URL
 
-	// The protocol version for incoming server requests.
-	//
-	// For client requests, these fields are ignored. The HTTP
-	// client code always uses either HTTP/1.1 or HTTP/2.
-	// See the docs on Transport for details.
 	Proto string // "HTTP/1.0"
 
-	// Header contains the request header fields either received
-	// by the server or to be sent by the client.
-	//
-	// If a server received a request with header lines,
+	// if the request is a client request, the header will include
 	//
 	//	Host: example.com
 	//	accept-encoding: gzip, deflate
@@ -64,22 +50,13 @@ type Request struct {
 	//		"Foo": {"Bar", "two"},
 	//	}
 	//
-	// For incoming requests, the Host header is promoted to the
-	// Request.Host field and removed from the Header map.
-	//
 	// HTTP defines that header names are case-insensitive. The
 	// request parser implements this by using CanonicalHeaderKey,
 	// making the first character and any characters following a
 	// hyphen uppercase and the rest lowercase.
-	//
-	// For client requests, certain headers such as Content-Length
-	// and Connection are automatically written when needed and
-	// values in Header may be ignored. See the documentation
-	// for the Request.Write method.
 	Header http.Header
 
 	// Body is the request's body.
-	//
 	// For client requests, a nil body means the request has no
 	// body, such as a GET request.
 	Body io.ReadCloser
