@@ -82,8 +82,7 @@ type Request struct {
 	//
 	// For client requests, a nil body means the request has no
 	// body, such as a GET request.
-	Body             io.ReadCloser
-	TransferEncoding []string
+	Body io.ReadCloser
 }
 
 func (req *Request) Close() error {

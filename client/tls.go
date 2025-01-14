@@ -116,6 +116,8 @@ func (c *TLSClient) RecvAppData() ([]byte, error) {
 		appData.FromBuffer(c.securityParams.ServerKey, c.securityParams.ServerIV, c.serverSeqNumber, recvBuf)
 		c.serverSeqNumber += 1
 
+		fmt.Println("chunk ", string(appData.Data))
+
 		result = append(result, appData.Data...)
 	}
 
