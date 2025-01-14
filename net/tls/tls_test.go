@@ -1,4 +1,4 @@
-package client
+package tls
 
 import (
 	"crypto/ecdh"

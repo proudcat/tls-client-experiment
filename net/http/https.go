@@ -1,14 +1,16 @@
-package client
+package http
 
 import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/proudcat/tls-client-experiment/net/tls"
 )
 
 type HTTPSClient struct {
 	io.Closer
-	tls  *TLSClient
+	tls  *tls.TLSClient
 	host string
 }
 
@@ -20,10 +22,10 @@ func NewHTTPSClient(host string, tls_version uint16) *HTTPSClient {
 
 	host = strings.TrimSuffix(host, "/")
 
-	tls := NewTLSClient(host, tls_version)
+	tls_client := tls.NewTLSClient(host, tls_version)
 
 	return &HTTPSClient{
-		tls:  tls,
+		tls:  tls_client,
 		host: host,
 	}
 }
@@ -32,9 +34,10 @@ func (client *HTTPSClient) Get(path string, headers map[string]string) error {
 	return client.Request("GET", path, headers)
 }
 
-func (client *HTTPSClient) Post(path string, headers map[string]string) error {
-	return client.Request("POST", path, headers)
-}
+// DOES NOT SUPPORT POST REQUESTS
+// func (client *HTTPSClient) Post(path string, headers map[string]string) error {
+// 	return client.Request("POST", path, headers)
+// }
 
 func (client *HTTPSClient) Request(method, path_with_query string, headers map[string]string) error {
 	if err := client.tls.Handshake(); err != nil {

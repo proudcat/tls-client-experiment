@@ -1,4 +1,4 @@
-package client
+package tls
 
 import (
 	"encoding/binary"
@@ -10,6 +10,7 @@ import (
 	"github.com/proudcat/tls-client-experiment/common"
 	"github.com/proudcat/tls-client-experiment/helpers"
 	"github.com/proudcat/tls-client-experiment/message"
+	"github.com/proudcat/tls-client-experiment/net/tcp"
 	"github.com/proudcat/tls-client-experiment/types"
 )
 
@@ -40,7 +41,7 @@ type TLSClient struct {
 	io.Closer
 	version         uint16
 	host            string
-	tcp             *TCPClient
+	tcp             *tcp.TCPClient
 	messages        common.Buffer
 	clientSeqNumber byte
 	serverSeqNumber byte
@@ -49,7 +50,7 @@ type TLSClient struct {
 }
 
 func NewTLSClient(host string, version uint16) *TLSClient {
-	tcp, err := DialTCP(host + ":443")
+	tcp, err := tcp.DialTCP(host + ":443")
 	if err != nil {
 		fmt.Println("DialTCP failed:", err.Error())
 		os.Exit(1)
